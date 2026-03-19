@@ -23,6 +23,11 @@ async def register_user(user: UserCreate,
                     login=user.login,
                     hashed_password=hash_password(user.password)
                     )
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_TIME)
+        # Создаёт токен (строка из шестнадцатиричных цифр). Шифрует в нём логин и длительность токена.
+        access_token = create_access_token(
+            data={'sub': user.login}, expires_delta=access_token_expires
+        )
     except ValueError as exc: # В случае ошибки (существование юзера с таким логином) выдаст код 409.
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

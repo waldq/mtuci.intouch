@@ -1,10 +1,10 @@
 import uvicorn
-from app.database import create_db, get_session
 from fastapi import FastAPI, Depends
+
+from app.database import create_db, get_session
 
 import api.auth as auth
 import api.users as users
-
 
 app = FastAPI()
 
@@ -19,5 +19,5 @@ async def startup_actions():
 
 # Функция для запуска приложения без команды в терминале. 
 # Либо можно написать uvicorn app.main:app --reload, если в терминале выбрана корневая папка.
-if __name__ == '__main__':
-    uvicorn.run('app.main:app', host='127.0.0.1', port='8000', reload=True)
+# if __name__ == '__main__':
+#     uvicorn.run('app.main:app', host='127.0.0.1', port='8000', reload=True)

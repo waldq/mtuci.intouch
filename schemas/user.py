@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import uuid
 from datetime import datetime
 
@@ -14,7 +14,7 @@ class UserRead(BaseModel):
 
 class UserCreate(BaseModel):
     username: str
-    login: str
+    login: str = Field(min_length=8)
     password: str
 
 class Token(BaseModel):
