@@ -26,13 +26,14 @@ async def register_user(user: UserCreate,
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_TIME)
         # Создаёт токен (строка из шестнадцатиричных цифр). Шифрует в нём логин и длительность токена.
         access_token = create_access_token(
-            data={'sub': user.login, 'type': 'access'}, expires_delta=access_token_expires
+            data={'sub': user.login}, expires_delta=access_token_expires
         )
         refresh_token_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_TIME)
         # Создаёт токен (строка из шестнадцатиричных цифр). Шифрует в нём логин и длительность токена.
         refresh_token = create_refresh_token(
-            data={'sub': user.login, 'type': 'refresh'}, expires_delta=access_token_expires
+            data={'sub': user.login}, expires_delta=refresh_token_expires
         )
+        return Token(access_token=access_token, token_type='bearer') 
     except ValueError as exc: # В случае ошибки (существование юзера с таким логином) выдаст код 409.
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -69,11 +70,11 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), # Пол�
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_TIME)
     # Создаёт токен (строка из шестнадцатиричных цифр). Шифрует в нём логин и длительность токена.
     access_token = create_access_token(
-        data={'sub': user.login, 'type': 'access'}, expires_delta=access_token_expires
+        data={'sub': user.login}, expires_delta=access_token_expires
     )
     refresh_token_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_TIME)
         # Создаёт токен (строка из шестнадцатиричных цифр). Шифрует в нём логин и длительность токена.
     refresh_token = create_refresh_token(
-            data={'sub': user.login, 'type': 'refresh'}, expires_delta=refresh_token_expires
+            data={'sub': user.login}, expires_delta=refresh_token_expires
         )
-    return Token(access_token=access_token, token_type='bearer'), 
+    return Token(access_token=access_token, token_type='bearer') 

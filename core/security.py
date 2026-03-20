@@ -50,10 +50,10 @@ def create_refresh_token(data: dict, expires_delta: timedelta | None = None):
         expire = datetime.now(timezone.utc) + expires_delta
     else: # если время длительности не передано, ставим 15 минут.
         expire = datetime.now(timezone.utc) + timedelta(days=30)
-    to_encode.update({"exp": expire, "jti": uuid.uuid4}) # добавляем время истечения токена в словарь с данными.
+    to_encode.update({"exp": expire, "jti": str(uuid.uuid4)})
+    print(to_encode) # добавляем время истечения токена в словарь с данными.
     encoded_jwt = jwt.encode(to_encode, settings.REFRESH_SECRET_KEY, settings.ALGORITHM)
     return encoded_jwt
-
 
 
 

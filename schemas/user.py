@@ -14,8 +14,8 @@ class UserRead(BaseModel):
 
 class UserCreate(BaseModel):
     username: str
-    login: str = Field(min_length=8)
-    password: str
+    login: str
+    password: str = Field(min_length=8)
 
 class Token(BaseModel):
     access_token: str
