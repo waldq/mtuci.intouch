@@ -1,5 +1,6 @@
 from pwdlib import PasswordHash
 import jwt
+import uuid
 from sqlmodel import Session
 from datetime import datetime, timedelta, timezone
 
@@ -40,8 +41,19 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None): # �
     else: # если время длительности не передано, ставим 15 минут.
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire}) # добавляем время истечения токена в словарь с данными.
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM) # шифруем токен с данными.
+    encoded_jwt = jwt.encode(to_encode, settings.ACCESS_SECRET_KEY, settings.ALGORITHM) # шифруем токен с данными.
     return encoded_jwt
+
+def create_refresh_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta: # если есть время длительности токена, используем его для вычисления времени истечения срока действия (часовой пояс utc).
+        expire = datetime.now(timezone.utc) + expires_delta
+    else: # если время длительности не передано, ставим 15 минут.
+        expire = datetime.now(timezone.utc) + timedelta(days=30)
+    to_encode.update({"exp": expire, "jti": uuid.uuid4}) # добавляем время истечения токена в словарь с данными.
+    encoded_jwt = jwt.encode(to_encode, settings.REFRESH_SECRET_KEY, settings.ALGORITHM)
+    return encoded_jwt
+
 
 
 

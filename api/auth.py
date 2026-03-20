@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from crud.user import *
 from schemas.user import *
-from core.security import hash_password, authenticate_user, create_access_token
+from core.security import *
 from app.database import get_session
 from app.dependencies import *
 
@@ -26,7 +26,12 @@ async def register_user(user: UserCreate,
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_TIME)
         # Создаёт токен (строка из шестнадцатиричных цифр). Шифрует в нём логин и длительность токена.
         access_token = create_access_token(
-            data={'sub': user.login}, expires_delta=access_token_expires
+            data={'sub': user.login, 'type': 'access'}, expires_delta=access_token_expires
+        )
+        refresh_token_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_TIME)
+        # Создаёт токен (строка из шестнадцатиричных цифр). Шифрует в нём логин и длительность токена.
+        refresh_token = create_refresh_token(
+            data={'sub': user.login, 'type': 'refresh'}, expires_delta=access_token_expires
         )
     except ValueError as exc: # В случае ошибки (существование юзера с таким логином) выдаст код 409.
         raise HTTPException(
@@ -64,6 +69,11 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), # Пол�
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_TIME)
     # Создаёт токен (строка из шестнадцатиричных цифр). Шифрует в нём логин и длительность токена.
     access_token = create_access_token(
-        data={'sub': user.login}, expires_delta=access_token_expires
+        data={'sub': user.login, 'type': 'access'}, expires_delta=access_token_expires
     )
-    return Token(access_token=access_token, token_type='bearer')
+    refresh_token_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_TIME)
+        # Создаёт токен (строка из шестнадцатиричных цифр). Шифрует в нём логин и длительность токена.
+    refresh_token = create_refresh_token(
+            data={'sub': user.login, 'type': 'refresh'}, expires_delta=refresh_token_expires
+        )
+    return Token(access_token=access_token, token_type='bearer'), 
