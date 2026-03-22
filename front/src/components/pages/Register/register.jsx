@@ -19,7 +19,7 @@ const Register = () => {
             case 'username':
                 return value.trim() === '' ? 'Имя пользователя обязательно!' : '';
             case 'password':
-                return value.length < 8 ? 'Пароль должен быть минимум 8 символов!' : '';
+                return value.length < 8 ? 'Пароль должен содержать минимум 8 символов!' : '';
             case 'confirmPassword':
                 return value !== formData.password ? 'Пароли не совпадают!' : '';
             default:
@@ -41,7 +41,6 @@ const Register = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Здесь будет отправка формы
         console.log('Form submitted:', formData);
     };
 
