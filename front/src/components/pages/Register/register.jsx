@@ -94,17 +94,17 @@ const Register = () => {
                 <meta name="theme-color" content="#372579" />
             </Helmet>
 
-            <div className="register-container">
-                <div className="register-card">
-                    <h2 className="register-title">Создайте аккаунт</h2>
+            <div className="reg-container">
+                <div className="reg-card">
+                    <h2 className="reg-title">Создайте аккаунт</h2>
 
-                    <form className="register-form" noValidate onSubmit={handleSubmit}>
-                        <div className="forms">
-                            <div className="input-wrapper">
+                    <form className="reg-form" noValidate onSubmit={handleSubmit}>
+                        <div className="reg-forms">
+                            <div className="reg-input-wrapper">
                                 <input
                                     type="text"
                                     placeholder="Имя пользователя"
-                                    className={`form-input ${touched.username && errors.username ? 'error' : ''}`}
+                                    className={`reg-form-input ${touched.username && errors.username ? 'error' : ''}`}
                                     name="username"
                                     value={formData.username}
                                     onChange={handleChange}
@@ -112,15 +112,15 @@ const Register = () => {
                                     required
                                 />
                                 {touched.username && errors.username && (
-                                    <span className="error-message">{errors.username}</span>
+                                    <span className="reg-error-message">{errors.username}</span>
                                 )}
                             </div>
 
-                            <div className="input-wrapper">
+                            <div className="reg-input-wrapper">
                                 <input
                                     type="text"
                                     placeholder="Логин"
-                                    className={`form-input ${touched.login && errors.login ? 'error' : ''}`}
+                                    className={`reg-form-input ${touched.login && errors.login ? 'error' : ''}`}
                                     name="login"
                                     value={formData.login}
                                     onChange={handleChange}
@@ -128,15 +128,15 @@ const Register = () => {
                                     required
                                 />
                                 {touched.login && errors.login && (
-                                    <span className="error-message">{errors.login}</span>
+                                    <span className="reg-error-message">{errors.login}</span>
                                 )}
                             </div>
 
-                            <div className="input-wrapper">
+                            <div className="reg-input-wrapper">
                                 <input
                                     type="password"
                                     placeholder="Пароль"
-                                    className={`form-input ${touched.password && errors.password ? 'error' : ''}`}
+                                    className={`reg-form-input ${touched.password && errors.password ? 'error' : ''}`}
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
@@ -144,15 +144,15 @@ const Register = () => {
                                     required
                                 />
                                 {touched.password && errors.password && (
-                                    <span className="error-message">{errors.password}</span>
+                                    <span className="reg-error-message">{errors.password}</span>
                                 )}
                             </div>
 
-                            <div className="input-wrapper">
+                            <div className="reg-input-wrapper">
                                 <input
                                     type="password"
                                     placeholder="Подтвердите пароль"
-                                    className={`form-input ${touched.confirmPassword && errors.confirmPassword ? 'error' : ''}`}
+                                    className={`reg-form-input ${touched.confirmPassword && errors.confirmPassword ? 'error' : ''}`}
                                     name="confirmPassword"
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
@@ -160,17 +160,17 @@ const Register = () => {
                                     required
                                 />
                                 {touched.confirmPassword && errors.confirmPassword && (
-                                    <span className="error-message">{errors.confirmPassword}</span>
+                                    <span className="reg-error-message">{errors.confirmPassword}</span>
                                 )}
                             </div>
                         </div>
 
-                        <button type="submit" className="register-button">
+                        <button type="submit" className="reg-button">
                             Зарегистрироваться
                         </button>
                     </form>
 
-                    <button className="login-button" onClick={handleClick}>
+                    <button className="reg-login-button" onClick={handleClick}>
                         Уже есть аккаунт?
                     </button>
                 </div>
