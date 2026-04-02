@@ -43,7 +43,7 @@ const Register = () => {
     };
 
     const handleClick = () => {
-        console.log('Страница входа будет добавлена позже');
+        navigate('/login');
     };
 
     const handleSubmit = async (e) => {

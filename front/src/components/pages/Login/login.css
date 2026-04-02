@@ -75,6 +75,11 @@
     color: #272626; 
 }
 
+.log-form-input.error {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
+}
+
 .log-form-input[type="password"] {
     font-family: "Montserrat", sans-serif;
     font-size: 16px;
@@ -92,6 +97,16 @@
     letter-spacing: normal;
     color: #999;
     -webkit-text-stroke: 0;
+}
+
+.log-error-message {
+    color: #ff6b6b;
+    font-size: 13px;
+    margin-top: 4px;
+    text-align: left;
+    width: 400px;
+    max-width: 100%;
+    font-family: "Montserrat", sans-serif;
 }
 
 .log-submit-btn {
