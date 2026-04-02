@@ -1,8 +1,11 @@
 import { Helmet } from 'react-helmet';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './register.css';
 
 const Register = () => {
+    const navigate = useNavigate();
+
     const [formData, setFormData] = useState({
         username: '',
         login: '',
@@ -39,9 +42,48 @@ const Register = () => {
         setErrors({ ...errors, [name]: error });
     };
 
-    const handleSubmit = (e) => {
+    const handleClick = () => {
+        console.log('Страница входа будет добавлена позже');
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Form submitted:', formData);
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: formData.username,
+                    login: formData.login,
+                    password: formData.password
+                })
+            });
+
+            if (response.status === 201) {
+                const data = await response.json();
+                console.log('Регистрация успешна:', data);
+                alert('Регистрация прошла успешно!');
+                setFormData({
+                    username: '',
+                    login: '',
+                    password: '',
+                    confirmPassword: ''
+                });
+                setTouched({});
+                setErrors({});
+            } else if (response.status === 409) {
+                const error = await response.json();
+                alert(error.detail || 'Пользователь с таким логином уже существует');
+            } else {
+                alert('Ошибка регистрации');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка соединения с сервером');
+        }
     };
 
     return (
@@ -128,7 +170,7 @@ const Register = () => {
                         </button>
                     </form>
 
-                    <button className="login-button">
+                    <button className="login-button" onClick={handleClick}>
                         Уже есть аккаунт?
                     </button>
                 </div>
