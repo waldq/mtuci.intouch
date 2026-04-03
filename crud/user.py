@@ -27,3 +27,8 @@ def get_user_by_login(session: Session, login: str):
     statement = select(User).where(login == User.login)
     results = session.exec(statement=statement)
     return results.first()
+
+def get_user_by_id(session: Session, id: str):
+    statement = select(User).where(id == User.id)
+    results = session.exec(statement=statement)
+    return results.first()
