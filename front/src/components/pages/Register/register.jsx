@@ -14,6 +14,7 @@ const Register = () => {
     });
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
+    const [isLoading, setIsLoading] = useState(false);
 
     const validateField = (name, value) => {
         switch (name) {
@@ -28,6 +29,10 @@ const Register = () => {
             default:
                 return '';
         }
+    };
+
+    const hasFormErrors = () => {
+        return formData.password !== formData.confirmPassword || Object.values(errors).some(error => error !== '');
     };
 
     const handleChange = (e) => {
@@ -49,6 +54,13 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (hasFormErrors()) {
+            alert('Исправьте ошибки в форме!');
+            return;
+        }
+
+        setIsLoading(true);
+
         try {
             const response = await fetch('http://127.0.0.1:8000/auth/register', {
                 method: 'POST',
@@ -65,6 +77,11 @@ const Register = () => {
             if (response.status === 201) {
                 const data = await response.json();
                 console.log('Регистрация успешна:', data);
+
+                if (data.access_token) {
+                    localStorage.setItem('access_token', data.access_token);
+                }
+
                 alert('Регистрация прошла успешно!');
                 setFormData({
                     username: '',
@@ -83,6 +100,8 @@ const Register = () => {
         } catch (error) {
             console.error('Ошибка:', error);
             alert('Ошибка соединения с сервером');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -165,8 +184,12 @@ const Register = () => {
                             </div>
                         </div>
 
-                        <button type="submit" className="reg-button">
-                            Зарегистрироваться
+                        <button 
+                        type="submit" 
+                        className="reg-button"
+                        disabled={isLoading || hasFormErrors()}
+                        >
+                            {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
                         </button>
                     </form>
 
