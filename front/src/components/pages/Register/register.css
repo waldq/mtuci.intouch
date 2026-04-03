@@ -4,7 +4,7 @@
     box-sizing: border-box;
 }
 
-.register-container {
+.reg-container {
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -17,7 +17,7 @@
     padding: 16px;
 }
 
-.register-card {
+.reg-card {
     width: 480px;
     max-width: 100%; 
     height: auto; 
@@ -31,7 +31,7 @@
     align-items: center;
 }
 
-.register-title {
+.reg-title {
     font-family: "Montserrat", sans-serif;
     font-size: 28px;
     margin-bottom: 60px;
@@ -40,14 +40,14 @@
     word-break: break-word;
 }
 
-.register-form {
+.reg-form {
     display: flex;
     flex-direction: column;
     gap: 20px;
     width: 100%; 
 }
 
-.forms {
+.reg-forms {
     display: flex;
     flex-direction: column;
     gap: 40px;
@@ -55,14 +55,14 @@
     width: 100%;
 }
 
-.input-wrapper {
+.reg-input-wrapper {
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-.form-input {
+.reg-form-input {
     width: 400px;
     max-width: 100%; 
     padding: 10px 0 10px 12px;
@@ -75,12 +75,12 @@
     color: #272626; 
 }
 
-.form-input.error {
+.reg-form-input.error {
     border-color: #ff6b6b;
     box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
 }
 
-.form-input[type="password"] {
+.reg-form-input[type="password"] {
     font-family: "Montserrat", sans-serif;
     font-size: 16px;
     font-weight: 900;
@@ -90,7 +90,7 @@
     -webkit-text-stroke: 0.5px black;
 }
 
-.form-input[type="password"]::placeholder {
+.reg-form-input[type="password"]::placeholder {
     font-family: "Montserrat", sans-serif;
     font-size: 16px;
     font-weight: 400;
@@ -99,7 +99,7 @@
     -webkit-text-stroke: 0;
 }
 
-.error-message {
+.reg-error-message {
     color: #ff6b6b;
     font-size: 13px;
     margin-top: 4px;
@@ -108,7 +108,8 @@
     max-width: 100%;
     font-family: "Montserrat", sans-serif;
 }
-.register-button {
+
+.reg-button {
     width: 410px;
     max-width: 100%; 
     padding: 14px;
@@ -127,12 +128,12 @@
     border: none;
 }
 
-.register-button:hover {
+.reg-button:hover {
     background-color: #8a5cc9;
     transition: all 0.2s ease-out;
 }
 
-.login-button {
+.reg-login-button {
     background: none;  
     border: none;      
     padding: 0;
@@ -143,7 +144,7 @@
     cursor: pointer;
 }
 
-.login-button:hover {
+.reg-login-button:hover {
     text-decoration: underline;
     color: #C8B0E9;
     transition: all 0.2s ease-out;

@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import create_db, get_session
 
@@ -22,6 +23,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*']
+)
+
 # Подключение модулей (роутеров).
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -30,27 +39,6 @@ app.include_router(users.router)
 @app.on_event(event_type='startup')
 async def startup_actions():
     create_db()
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()  # подтверждаем соединение
-    
-    try:
-        while True:
-            # Ждем сообщение от клиента
-            data = await websocket.receive_text()
-            
-            # Отправляем ответ
-            await websocket.send_text(f"Echo: {data}")
-            
-    except WebSocketDisconnect:
-        # Клиент отключился
-        print("Client disconnected")
-
-@app.websocket("/ws/chat")
-async def websocket_chat(websocket: WebSocket):
-    token = websocket.headers.get("sec-websocket-protocol", "").split(", ")[-1]
-    await websocket.accept(subprotocol=token)
 
 # Функция для запуска приложения без команды в терминале. 
 # Либо можно написать uvicorn app.main:app --reload, если в терминале выбрана корневая папка.
