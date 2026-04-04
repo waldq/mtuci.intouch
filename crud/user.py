@@ -1,10 +1,11 @@
 from app.models import User
 from app.database import get_session
-from sqlmodel import Session, select
+from sqlmodel import select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Функция создания пользователя в бд.
-def create_user(session: Session, username: str, login: str, hashed_password: str):
+async def create_user(session: AsyncSession, username: str, login: str, hashed_password: str):
     user = User( # Принимает юзернейм, логин, хэшированный пароль
         username=username,
         login=login,
@@ -12,23 +13,23 @@ def create_user(session: Session, username: str, login: str, hashed_password: st
     )
     try: # Пробуем добавить данные в бд и обновить их (получить недостающие дефолтные) в функции.
         session.add(user)
-        session.commit()
-        session.refresh(user)
+        await session.commit()
+        await session.refresh(user)
 
     except IntegrityError: # В случае конфликта данных откатываем сессию и возвращаем ошибку.
-        session.rollback()
+        await session.rollback()
         raise ValueError('Пользователь с такими данными уже существует.')
     
     except ValueError as e: # Возвращаем ошибки в непредвиденных случаях.
         raise e
 
 # Функция получания юзера по логину, sql-запрос.
-def get_user_by_login(session: Session, login: str):
+async def get_user_by_login(session: AsyncSession, login: str):
     statement = select(User).where(login == User.login)
-    results = session.exec(statement=statement)
-    return results.first()
+    results = await session.execute(statement=statement)
+    return results.scalar_one_or_none()
 
-def get_user_by_id(session: Session, id: str):
+async def get_user_by_id(session: AsyncSession, id: str):
     statement = select(User).where(id == User.id)
-    results = session.exec(statement=statement)
-    return results.first()
+    results = await session.execute(statement=statement)
+    return results.scalar_one_or_none()

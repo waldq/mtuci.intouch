@@ -1,7 +1,7 @@
 from pwdlib import PasswordHash
 import jwt
 import uuid
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta, timezone
 
 from core.config import settings
@@ -24,8 +24,8 @@ def verify_password(plain_password: str, hashed_password: str):
     return password_hash.verify(plain_password, hashed_password)
 
 # Функция аутентификации (проверки логина и пароля с бд.). Возвращает юзера или False.
-def authenticate_user(session: Session, login: str, password: str):
-    user = get_user_by_login(session, login)
+async def authenticate_user(session: AsyncSession, login: str, password: str):
+    user = await get_user_by_login(session, login)
     if user is None: #даже если юзера нет, все равно проверяем пароли, чтобы время отрабатывания было +- одинаковое.
         verify_password(password, DUMMY_HASH)
         return False
@@ -40,7 +40,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None): # �
         expire = datetime.now(timezone.utc) + expires_delta
     else: # если время длительности не передано, ставим 15 минут.
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-    to_encode.update({"exp": expire}) # добавляем время истечения токена в словарь с данными.
+    to_encode.update({"exp": expire, 'type': 'access'}) # добавляем время истечения токена в словарь с данными.
     encoded_jwt = jwt.encode(to_encode, settings.ACCESS_SECRET_KEY, settings.ALGORITHM) # шифруем токен с данными.
     return encoded_jwt
 

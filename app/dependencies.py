@@ -12,7 +12,7 @@ from app.redis_client import *
 
 # Объект, обращающийся к tokenUrl /auth/token, передаёт туда логин и пароль и возвращает токен.
 # По факту самостоятельно он ничего не возвращает, но при успешной авторизации даёт права доступа к эндпоинтам.
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/token')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
 
 # Функция, принимающая токен и возвращающая юзера. 
 # Будет использоваться для предоставления доступа авторизованным пользователям, 
@@ -43,7 +43,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/token')
 
 async def get_current_user(
     request: Request,
-    redis_client: redis.Redis = Depends(get_redis)
+    redis_client: redis.Redis = Depends(get_redis),
+    token: str = Depends(oauth2_scheme)
 ):
     """
     Зависимость для защищенных эндпоинтов.
@@ -58,26 +59,25 @@ async def get_current_user(
             detail="Missing or invalid authorization header",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    token = auth_header.split(" ")[1]
-    
     # 2. Декодируем токен
     try:
-        payload = jwt.decode(token, settings.REFRESH_SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(token, settings.ACCESS_SECRET_KEY, algorithms=[settings.ALGORITHM])
         
         # Проверяем, что это access токен, а не refresh
         if payload.get("type") != "access":
             raise HTTPException(401, "Invalid token type")
         
-        user_id = payload.get()
-        user_login = payload.get("sub")
+        user_id = payload.get('user_id')
         session_id = payload.get("session_id")
         
-        if not user_login or not session_id:
+        if not user_id or not session_id:
             raise HTTPException(401, "Invalid token payload")
             
-    except HTTPException:
-        raise
+    except HTTPException as e:
+        raise e
+    
+    except jwt.PyJWTError:
+        raise HTTPException(401, 'Could not validate credentials.')
     
     # 3. Проверяем, что токен есть в Redis (не отозван)
     token_exists = await check_access_token_in_redis(
@@ -86,9 +86,7 @@ async def get_current_user(
     if not token_exists:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has been revoked",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail="Token has been revoked"
         )
     
-    
-    return {"user_id": user_id, "session_id": session_id, "user_login": user_login}
+    return {"user_id": user_id, "session_id": session_id}
