@@ -14,7 +14,10 @@ from app.redis_client import RedisClient
 async def lifespan(app: FastAPI):
     await RedisClient.get_pool()
     print("✅ Redis pool initialized")
-    
+
+    # Создание базы данных при запуске приложения
+    await create_db()
+
     yield
 
     if RedisClient._pool:
@@ -34,11 +37,6 @@ app.add_middleware(
 # Подключение модулей (роутеров).
 app.include_router(auth.router)
 app.include_router(users.router)
-
-# Создание базы при запуске приложения.
-@app.on_event(event_type='startup')
-async def startup_actions():
-    await create_db()
 
 # Функция для запуска приложения без команды в терминале. 
 # Либо можно написать uvicorn app.main:app --reload, если в терминале выбрана корневая папка.
