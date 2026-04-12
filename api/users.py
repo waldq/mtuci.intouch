@@ -17,5 +17,5 @@ router = APIRouter(prefix='/users', tags=['users'])
 async def read_users_me(data = Depends(get_current_user),
                         session: AsyncSession = Depends(get_session)):
     user_id = data.get('user_id')
-    user = await get_user_by_id(session, user_id)
+    user = await get_user_by_id(user_id, session)
     return user

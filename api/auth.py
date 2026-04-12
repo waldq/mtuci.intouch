@@ -19,13 +19,10 @@ router = APIRouter(prefix='/auth', tags=['auth'])
 @router.post('/register', status_code=status.HTTP_201_CREATED, response_model=UserOut)
 async def register_user(user: UserCreate, 
                         session: AsyncSession = Depends(get_session)): # Получает данные из модели UserCreate и сессию базы данных (передавать не нужно).
+    hashed_pwd = hash_password(user.password)
     try: # Пробует создать экземпляр пользователя и сразу добавить в базу. 
-        await create_user(session=session,
-                    username=user.username,
-                    login=user.login,
-                    hashed_password=hash_password(user.password)
-                    )
-        return UserOut(username=user.username, login=user.login)
+        user_out = await create_user(user, hashed_pwd, session)
+        return user_out
     except ValueError as exc: # В случае ошибки (существование юзера с таким логином) выдаст код 409.
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -41,12 +38,12 @@ async def login_user(response: Response,
                 session: AsyncSession = Depends(get_session)
                 ):
     # Пытается аутентифицировать (проверить юзера по данным) и плучить экземпляр юзера, в противном случае False.
-    user = await authenticate_user(session, form_data.username, form_data.password)
+    user = await authenticate_user(form_data.username, form_data.password, session)
     if not user: # Если юзера нет, выдаст ошибку 401.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, 
             detail='Неверный логин или пароль.',
-            header={'WWW-Authenticate': 'Bearer'},
+            headers={'WWW-Authenticate': 'Bearer'},
             )
     
     session_id = str(uuid.uuid4())
@@ -70,7 +67,7 @@ async def login_user(response: Response,
             httponly=True,
             secure=False,
             samesite='lax',
-            max_age=7 * 24 * 60 * 60,
+            max_age=settings.REFRESH_TOKEN_EXPIRE_TIME * 60,
             path='/auth/refresh'
         )
     
@@ -81,7 +78,7 @@ async def login_user(response: Response,
 async def refresh_access_token(request: Request,
                                response: Response,
                                redis_client: redis.Redis = Depends(get_redis),
-                               session: Session = Depends(get_session)):
+                               session: AsyncSession = Depends(get_session)):
     refresh_token = request.cookies.get('refresh_token')
 
     if not refresh_token:
@@ -116,7 +113,7 @@ async def refresh_access_token(request: Request,
         raise HTTPException(401, "Token mismatch")
     
     # 4. Создаем НОВЫЙ access токен
-    user = await get_user_by_id(session, user_id)
+    user = await get_user_by_id(user_id, session)
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_TIME)
     access_token = create_access_token(
         data={'sub': user.login, 'session_id': session_id, 'user_id': user_id}, expires_delta=access_token_expires

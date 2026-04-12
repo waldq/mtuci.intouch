@@ -42,7 +42,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
 #     return user # Тут возвращаются полные данные о пользователе, включая хэшированный пароль, в будущем будет меняться.
 
 async def get_current_user(
-    request: Request,
     redis_client: redis.Redis = Depends(get_redis),
     token: str = Depends(oauth2_scheme)
 ):
@@ -51,15 +50,7 @@ async def get_current_user(
     Проверяет access токен из заголовка Authorization.
     Возвращает user_id и session_id или кидает 401.
     """
-    # 1. Получаем токен из заголовка
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing or invalid authorization header",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    # 2. Декодируем токен
+    # 1. Декодируем токен
     try:
         payload = jwt.decode(token, settings.ACCESS_SECRET_KEY, algorithms=[settings.ALGORITHM])
         
@@ -79,7 +70,7 @@ async def get_current_user(
     except jwt.PyJWTError:
         raise HTTPException(401, 'Could not validate credentials.')
     
-    # 3. Проверяем, что токен есть в Redis (не отозван)
+    # 2. Проверяем, что токен есть в Redis (не отозван)
     token_exists = await check_access_token_in_redis(
         redis_client, user_id, session_id
     )

@@ -24,8 +24,8 @@ def verify_password(plain_password: str, hashed_password: str):
     return password_hash.verify(plain_password, hashed_password)
 
 # Функция аутентификации (проверки логина и пароля с бд.). Возвращает юзера или False.
-async def authenticate_user(session: AsyncSession, login: str, password: str):
-    user = await get_user_by_login(session, login)
+async def authenticate_user(login: str, password: str, session: AsyncSession):
+    user = await get_user_by_login(login, session)
     if user is None: #даже если юзера нет, все равно проверяем пароли, чтобы время отрабатывания было +- одинаковое.
         verify_password(password, DUMMY_HASH)
         return False
@@ -52,7 +52,6 @@ def create_refresh_token(data: dict, expires_delta: timedelta | None = None):
         expire = datetime.now(timezone.utc) + timedelta(days=30)
     jti = str(uuid.uuid4())
     to_encode.update({"exp": expire, "jti": jti, 'type': 'refresh'})
-    print(to_encode) # добавляем время истечения токена в словарь с данными.
     encoded_jwt = jwt.encode(to_encode, settings.REFRESH_SECRET_KEY, settings.ALGORITHM)
     return encoded_jwt, jti
 
