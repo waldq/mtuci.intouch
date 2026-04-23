@@ -9,8 +9,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_TIME: int
     REFRESH_TOKEN_EXPIRE_TIME: int
     REDIS_URL: str
+    TIMETABLE_URL: str
 
     model_config = SettingsConfigDict(env_file='.env', from_attributes=True)
 
+
 settings = Settings()
-    

@@ -4,13 +4,15 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 import socketio
 
-from app.database import create_db, get_session
-
-import api.auth as auth
-import api.users as users
-import api.socket as socket
-from app.dependencies import get_current_user
+from app.db.database import create_db, get_session
+import app.api.auth.auth as auth
+import app.api.users.users as users
+import app.api.socket.socket as socket
+import app.api.miscellaneous.miscellaneous as miscellaneous
+import app.api.chats.chats as chats
+from app.api.auth.dependencies import get_current_user
 from app.redis_client import RedisClient
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,10 +41,13 @@ app.add_middleware(
 # Подключение модулей (роутеров).
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(socket.router)
+app.include_router(miscellaneous.router)
+app.include_router(chats.router)
 
 asgi_app = socketio.ASGIApp(socket.sio, app)
 
-# Функция для запуска приложения без команды в терминале. 
+# Функция для запуска приложения без команды в терминале.
 # Либо можно написать uvicorn app.main:app --reload, если в терминале выбрана корневая папка.
 # if __name__ == '__main__':
 #     uvicorn.run('app.main:asgi_app', host='127.0.0.1', port='8000', reload=True)
