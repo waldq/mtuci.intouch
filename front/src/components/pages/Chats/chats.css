@@ -1,0 +1,372 @@
+:root {
+  --sidebar-width: 70px;
+  --chat-list-width: 320px;
+  --info-panel-width: 300px;
+  --bg-main: #f8f9fa;
+  --bg-white: #ffffff;
+  --text-dark: #1a1a1a;
+  --text-gray: #8e8e93;
+  --accent-blue: #007aff;
+  --border-light: #e5e5ea;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.messenger-container {
+  display: flex;
+  height: 100vh;
+  background-color: var(--bg-white);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text-dark);
+}
+
+/* 1. Левая узкая панель (Иконки) */
+.nav-sidebar {
+  width: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+  border-right: 1px solid var(--border-light);
+}
+
+.nav-logo {
+  width: 44px;
+  height: 44px;
+  background: #f2f2f7;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30px;
+  color: var(--text-dark);
+}
+
+.nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  color: #000000;
+}
+
+.nav-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  color: #000000;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* 2. Список недавних сообщений */
+.chats-sidebar {
+  width: var(--chat-list-width);
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+}
+
+.chats-header {
+  padding: 24px 20px 10px;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header-top h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.tabs {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.tab {
+  border: none;
+  background: none;
+  color: var(--text-gray);
+  padding-bottom: 8px;
+  cursor: pointer;
+}
+
+.tab.active {
+  color: var(--text-dark);
+  font-weight: 600;
+  border-bottom: 2px solid var(--text-dark);
+}
+
+.chats-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.chat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  transition: background 0.2s;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chat-card:hover {
+  background-color: #f2f2f7;
+}
+
+.chat-card.active {
+    background-color: #eef2ff;
+    border-left: 4px solid #372579;
+}
+
+.chat-info {
+  flex: 1;
+  min-width: 0; /* Для корректного truncate */
+}
+
+.chat-info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.timestamp {
+  font-size: 12px;
+  color: var(--text-gray);
+}
+
+.message-preview {
+  font-size: 13px;
+  color: var(--text-gray);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 3. Центральное окно чата */
+.chat-window {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-header {
+  height: 70px;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.current-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-online {
+  font-size: 11px;
+  color: #34c759;
+}
+
+.messages-area {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.message-row {
+  display: flex;
+  gap: 12px;
+}
+
+.message-meta {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.message-meta span {
+  font-weight: 400;
+  color: var(--text-gray);
+  margin-left: 8px;
+}
+
+.bubble {
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 85%;
+}
+
+.chat-image-wrapper {
+  margin-left: 44px; /* Отступ чтобы быть под текстом сообщения */
+  max-width: 400px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.chat-image {
+  width: 100%;
+  display: block;
+}
+
+/* Поле ввода */
+.chat-footer {
+  padding: 20px 24px;
+}
+
+.send-btn:active {
+    transform: scale(0.9);
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f2f2f7;
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.chat-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+}
+
+.input-actions {
+  display: flex;
+  gap: 15px;
+  color: var(--text-gray);
+  align-items: center;
+}
+
+/* 4. Правая информационная панель */
+.info-sidebar {
+  width: var(--info-panel-width);
+  border-left: 1px solid var(--border-light);
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.stories-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  overflow-x: auto;
+}
+
+.story-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.story-ring {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  padding: 2px;
+  border: 2px solid #ff9500;
+}
+
+.avatar-full {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.mini-profile {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.Profile {
+    font-weight: 700;
+    font-size: 16px;
+    text-align: left;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.profile-avatar-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.online-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 12px;
+  height: 12px;
+  background: #34c759;
+  border: 2px solid white;
+  border-radius: 50%;
+}
+
+.grid-media {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-top: 15px;
+}
+
+.grid-item {
+  aspect-ratio: 1;
+  background: #f2f2f7;
+  border-radius: 6px;
+}
+
+.chat-list::-webkit-scrollbar-thumb {
+    background: #e5e5ea;
+    border-radius: 10px;
+}
+
+/* Общие стили аватарок */
+.avatar-md { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+.avatar-sm { width: 40px; height: 40px; border-radius: 50%; }
+.avatar-xs { width: 32px; height: 32px; border-radius: 50%; }
+.avatar-lg { width: 80px; height: 80px; border-radius: 50%; }
