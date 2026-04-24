@@ -15,6 +15,7 @@ import{
     Paperclip as PaperclipIcon,
     Send as SendIcon
 } from 'lucide-react';
+import EmojiPicker from 'emoji-picker-react'
 
 
 const Chats = () => {
@@ -23,10 +24,19 @@ const Chats = () => {
   const [messageText, setMessageText] = useState('');
 
   const [contacts, setContacts] = useState([
-    {id: 1, name: 'Ope', lastMessage:"Gee, it's been good news all day...", time: "4: 27", online: true },
-    {id: 2, name: 'Oleg', lastMessage:"suck!!!", time: "12: 45", online: false },
+    {id: 1, name: 'Ope', lastMessage:"Gee, it's been good news all day...", time: "4:27", online: true },
+    {id: 2, name: 'Oleg', lastMessage:"suck!!!", time: "12:45", online: false },
     {id: 3, name: 'Vlad', lastMessage:"fuck you", time: "yesterday", online: true },
   ]);
+
+  const [groups, setGroups] = useState([
+  { id: 101, name: 'Group1', lastMessage: 'message1', time: '10:00', online: true },
+  { id: 102, name: 'Group2', lastMessage: 'messadge1', time: 'Yesterday', online: true },
+  ]);
+
+  const [activeTab,setActiveTab]=useState('personal')
+
+  const [showEmojiPicker,setShowEmojiPicker]=useState(false);
 
   const handleSendMessage = () => {
     if (messageText.trim() === '') return;
@@ -65,17 +75,23 @@ const Chats = () => {
           <EditIcon className="icon-muted" />
         </div>
         <div className="tabs">
-          <button className="tab active">Чаты</button>
-          <button className="tab">Группы</button>
+          <button className={`tab ${activeTab === 'personal' ? 'active' : ''}`}
+            onClick={() => setActiveTab('personal')}
+          >Чаты
+          </button>
+          <button className={`tab ${activeTab === 'groups' ? 'active' : ''}`}
+            onClick={() => setActiveTab('groups')}
+          >Группы
+          </button>
         </div>
       </div>
       
       <div className="chats-list">
-        {contacts.map((user) => (
+        {(activeTab === 'personal' ? contacts : groups).map((user) => (
           <div
-              key={user.id}
-              className={`chat-card ${activeChatId === user.id ? 'active' : ''}`}
-              onClick={() => setActiveChatId(user.id)}
+            key={user.id}
+            className={`chat-card ${activeChatId === user.id ? 'active' : ''}`}
+            onClick={() => setActiveChatId(user.id)}
           >
           <img src="ope-avatar.jpg" className="avatar-md" alt={user.name} />
           <div className="chat-info">
@@ -122,6 +138,17 @@ const Chats = () => {
 
       <footer className="chat-footer">
         <div className="input-wrapper">
+           {showEmojiPicker && (
+              <div className="EmojiPickermenu">
+                <EmojiPicker 
+                  onEmojiClick={(emojiData) => {
+                    setMessageText(prev => prev + emojiData.emoji);
+                  }}
+                  theme="light" // или "dark" под твой дизайн
+                  searchDisabled={false} // можно включить поиск по смайлам
+                />
+              </div>
+            )}
           <input 
             type="text" 
             placeholder="Напишите сообщение..." 
@@ -132,7 +159,13 @@ const Chats = () => {
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
           />
           <div className="input-actions">
-            <EmojiIcon />
+            <button
+              type='button'
+              className='action-btn'
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            >
+              <EmojiIcon className={showEmojiPicker ? 'icon-active' : 'icon-muted'}/>
+            </button>
             <MicIcon />
             <PaperclipIcon />
             <SendIcon className="send-btn"

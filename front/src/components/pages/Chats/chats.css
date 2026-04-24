@@ -95,23 +95,35 @@
 
 .tabs {
   display: flex;
-  gap: 20px;
-  font-size: 14px;
+  gap: 24px;          
   margin-bottom: 10px;
 }
 
 .tab {
-  border: none;
   background: none;
-  color: var(--text-gray);
-  padding-bottom: 8px;
+  border: none;
+  padding: 8px 0;   /* Отступы, чтобы удобно кликать */
+  font-size: 14px;
+  font-weight: 500;
+  color: #8e8e93;     /* Серый цвет для неактивных */
   cursor: pointer;
+  position: relative; /* Нужно для позиционирования линии снизу */
+  transition: all 0.2s ease;
+  outline: none;      /* Убираем стандартную обводку браузера */
+  border-bottom: 2px solid transparent;
 }
 
+/* Стиль при наведении курсора */
+.tab:hover {
+  color: #1c1c1e;     /* Становится темнее при наведении */
+  border-bottom: 2px solid #5856d6;
+}
+
+/* Стиль для АКТИВНОЙ вкладки */
 .tab.active {
-  color: var(--text-dark);
+  color: #5856d6;     /* Фиолетовый цвет МТУСИ (или черный #1c1c1e) */
   font-weight: 600;
-  border-bottom: 2px solid var(--text-dark);
+  border-bottom: 2px solid #5856d6;
 }
 
 .chats-list {
@@ -256,6 +268,7 @@
   background: #f2f2f7;
   border-radius: 12px;
   padding: 12px 16px;
+  width: 100%;
 }
 
 .chat-input {
@@ -363,6 +376,83 @@
 .chat-list::-webkit-scrollbar-thumb {
     background: #e5e5ea;
     border-radius: 10px;
+}
+
+.input-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.action-btn {
+  transition: transform 0.1s ease;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.action-btn:active {
+  transform: scale(0.9);
+}
+
+.icon-muted {
+  color:#6c6c6f;
+  transition: color 0.2s;
+}
+
+.input-active {
+  color:#5856d6;
+}
+
+.emoji-picker-popup {
+  position: absolute;
+  bottom: 100%;       /* Поднимает меню ровно над инпутом */
+  left: 10px;
+  background-color: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* Сетка 4 на 2 */
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 10px; /* Отступ от самого инпута */
+  z-index: 100;
+}
+
+.emoji-item {
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emoji-item:hover {
+  background-color: #f0efff; /* Твой легкий фиолетовый */
+}
+
+.EmojiPickermenu {
+  position: absolute;
+  bottom: 100%;       /* Поднимаем строго НАД инпутом */
+  right: 0;            /* Выравниваем по левому краю */
+  margin-bottom: 10px; /* Небольшой зазор от инпута */
+  z-index: 1000;      /* Чтобы меню было поверх всех элементов */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15); /* Мягкая тень */
+  border-radius: 8px;
+  max-width: 100%;
+}
+
+.EmojiPickermenu aside.EmojiPickerReact {
+  --epr-picker-border-radius: 8px;
+  width: 320px !important;  /* Можно задать фиксированную ширину */
+  height: 400px !important; /* И высоту */
 }
 
 /* Общие стили аватарок */
