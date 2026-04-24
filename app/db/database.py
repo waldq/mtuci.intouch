@@ -1,14 +1,17 @@
 from sqlmodel import SQLModel, Session, create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
-from app.models import *
-from core.config import settings
+from app.db.models.chats import *
+from app.db.models.messages import *
+from app.db.models.user import *
+from app.core.config import settings
 
 # Объект для взаимодействия с бд. echo=True - будет писать в терминале все sql-запросы, на фронт не влияет.
 engine = create_async_engine(url=settings.DATABASE_URL, echo=True)
 
 
-async_session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+async_session_maker = async_sessionmaker(
+    bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 # Функция, создающая базу данных со всеми таблицами (моделями). Модели должны быть импортированы в файл (3-я строка.)
 async def create_db():
