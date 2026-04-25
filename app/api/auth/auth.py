@@ -3,7 +3,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
 import redis.asyncio as redis
-import uuid
 import jwt
 
 from app.core.config import settings
@@ -11,6 +10,7 @@ from app.api.auth.crud import create_user
 from app.api.auth.schemas import UserCreate, UserOut, Token
 from app.api.auth.dependencies import get_refresh_token_data, get_access_key
 from app.core.security import hash_password, create_access_token, create_refresh_token, authenticate_user
+from app.core.deps import gen_next_id
 from app.db.database import get_session
 from app.redis_client import get_redis, store_tokens
 from app.api.users.crud import get_user_by_id
@@ -50,7 +50,7 @@ async def login_user(response: Response,
             headers={'WWW-Authenticate': 'Bearer'},
         )
 
-    session_id = str(uuid.uuid4())
+    session_id = str(gen_next_id())
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_TIME)
     # Создаёт токен (строка из шестнадцатиричных цифр). Шифрует в нём логин и длительность токена.
@@ -58,7 +58,7 @@ async def login_user(response: Response,
         data={
             'sub': user.login,
             'session_id': session_id,
-            'user_id': str(user.id),
+            'user_id': user.id,
         },
         expires_delta=access_token_expires,
     )

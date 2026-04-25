@@ -185,8 +185,8 @@
     color: var(--text-gray);
 }
 
-.info-sidebar {
-    /*flex: 1;*/
+.timetable-info-sidebar {
+    flex: 1;
     border-left: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;

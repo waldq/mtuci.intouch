@@ -1,17 +1,16 @@
-import uuid
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select, update, delete
+from sqlalchemy import select, update, delete
 
 from app.db.models.messages import Message, MessageType
 
 # Функция создания сообщения в бд.
 async def create_message(
-        sender_id: uuid.UUID,
-        chat_id: uuid.UUID,
+        sender_id: int,
+        chat_id: int,
         content: str,
         msg_type: MessageType,
-        reply_to_id: uuid.UUID | None,
+        reply_to_id: int | None,
         session: AsyncSession):
 
     message = Message(sender_id=sender_id,
@@ -29,13 +28,13 @@ async def create_message(
         raise e
 
 # Функция получания сообщения по id, sql-запрос.
-async def get_message_by_id(id: uuid.UUID, session: AsyncSession):
+async def get_message_by_id(id: int, session: AsyncSession):
     statement = select(Message).where(id == Message.id)
     results = await session.execute(statement=statement)
     return results.scalar_one_or_none()
 
 #Функция для изменения сообщения.
-async def update_message(message_id: uuid.UUID, new_content: str, session: AsyncSession):
+async def update_message(message_id: int, new_content: str, session: AsyncSession):
     statement = update(Message).where(Message.id == message_id)\
         .values(content=new_content, updated_at=datetime.now()).returning(Message)
     result = await session.execute(statement)
@@ -44,7 +43,7 @@ async def update_message(message_id: uuid.UUID, new_content: str, session: Async
     return updated_message
 
 #Функция для удаления сообщения.
-async def delete_message(message_id: uuid.UUID, session: AsyncSession):
+async def delete_message(message_id: int, session: AsyncSession):
     statement = delete(Message).where(Message.id == message_id)
     await session.execute(statement)
     await session.commit()

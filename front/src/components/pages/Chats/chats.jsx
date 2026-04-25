@@ -177,7 +177,7 @@ const Chats = () => {
     </main>
 
     {/*Правая панель*/}
-    <aside className="info-sidebar">
+    <aside className="chats-info-sidebar">
       <div className="info-header">
         <h3>Новое</h3>
         <SettingsIcon className="icon-muted" />

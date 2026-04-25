@@ -1,15 +1,14 @@
 from pydantic import BaseModel
-import uuid
 
 from app.db.models.messages import MessageType
 
 #Схемы для создания, изменения и отправления сообщений. 
 class MessageCreate(BaseModel):
-    sender_id: uuid.UUID
-    chat_id: uuid.UUID
+    sender_id: int
+    chat_id: int
     content: str
     msg_type: MessageType
-    reply_to_id: uuid.UUID | None
+    reply_to_id: int | None
 
 
 class MessageUpdate(BaseModel):
@@ -17,7 +16,7 @@ class MessageUpdate(BaseModel):
 
 
 class MessageSend(BaseModel):
-    chat_id: uuid.UUID
+    chat_id: int
     content: str
     msg_type: MessageType
-    reply_to_id: uuid.UUID | None
+    reply_to_id: int | None

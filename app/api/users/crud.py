@@ -1,6 +1,5 @@
-import uuid
 from datetime import datetime
-from sqlmodel import select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,7 +26,7 @@ async def get_user_by_login(login: str, session: AsyncSession):
     return results.scalar_one_or_none()
 
 # Функция получания юзера по id, sql-запрос.
-async def get_user_by_id(id: uuid.UUID, session: AsyncSession):
+async def get_user_by_id(id: int, session: AsyncSession):
     statement = select(User).where(User.id == id)
     results = await session.execute(statement=statement)
     return results.scalar_one_or_none()

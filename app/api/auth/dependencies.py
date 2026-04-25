@@ -1,6 +1,5 @@
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException, status, Request
-from sqlmodel import Session
 import jwt
 from jwt.exceptions import InvalidTokenError
 
