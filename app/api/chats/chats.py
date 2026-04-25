@@ -3,7 +3,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.dependencies import get_current_user
-from app.api.chats.crud import create_group_chat, create_direct_chat, update_chat_info, delete_chat, add_chatmembers, kick_chatmember
+from app.api.chats.crud import (create_group_chat, 
+                                create_direct_chat, 
+                                update_chat_info, 
+                                delete_chat, 
+                                add_chatmembers, 
+                                kick_chatmember,
+                                read_user_chats)
 from app.api.chats.schemas import ChatGroupCreate, ChatDirectCreate, ChatUpdate
 from app.db.database import get_session
 
@@ -100,5 +106,13 @@ async def kick_chat_member(chat_id: uuid.UUID,
         result = await kick_chatmember(chat_id=chat_id, user_id=to_kick_id, session=session)
         return result
     
+    except ValueError as e:
+        raise e
+    
+@router.get('/user_chats')
+async def get_user_chats(user_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    try:
+        results = await read_user_chats(user_id, session)
+        return results
     except ValueError as e:
         raise e

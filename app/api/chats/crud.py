@@ -2,6 +2,7 @@ import uuid
 from sqlmodel import select, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import defer
 
 from app.api.chats.schemas import ChatGroupCreate, ChatDirectCreate, ChatUpdate
 from app.db.models.chats import Chat, ChatMembersRoles, ChatMembers
@@ -150,3 +151,13 @@ async def kick_chatmember(chat_id: uuid.UUID, user_id: uuid.UUID, session: Async
     await session.execute(statement)
     await session.commit()
     return {'result': 'Chat member deleted.'}
+
+#Функция, возвращающая id чатов пользователя.
+async def read_user_chats(user_id: uuid.UUID, session: AsyncSession):
+    statement = select(Chat)\
+        .join(ChatMembers, ChatMembers.chat_id == Chat.id)\
+        .where(ChatMembers.user_id == user_id)\
+        .options(defer(Chat.created_at))\
+        .distinct()
+    results = await session.execute(statement)
+    return results.scalars().all()
