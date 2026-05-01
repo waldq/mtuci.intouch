@@ -239,7 +239,7 @@ const Timetable = () => {
                 </div>
             </aside>
 
-            <aside className="info-sidebar">
+            <aside className="timetable-info-sidebar">
                 <div className="right-panel-content">
                     <div className="calendar-container">
                         <div className="calendar-large">
