@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_TIME: int
     REDIS_URL: str
     TIMETABLE_URL: str
+    ID_EPOCH: int
 
     model_config = SettingsConfigDict(env_file='.env', from_attributes=True)
 

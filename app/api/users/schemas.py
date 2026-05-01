@@ -4,7 +4,7 @@ from datetime import datetime
 
 # Модели для чтения, обновления пользователей.
 class UserRead(BaseModel):
-    id: uuid.UUID
+    id: int
     username: str
     tag: str | None
     birthday: datetime | None

@@ -1,9 +1,14 @@
-import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.dependencies import get_current_user
-from app.api.chats.crud import create_group_chat, create_direct_chat, update_chat_info, delete_chat, add_chatmembers, kick_chatmember
+from app.api.chats.crud import (create_group_chat, 
+                                create_direct_chat, 
+                                update_chat_info, 
+                                delete_chat, 
+                                add_chatmembers, 
+                                kick_chatmember,
+                                read_user_chats)
 from app.api.chats.schemas import ChatGroupCreate, ChatDirectCreate, ChatUpdate
 from app.db.database import get_session
 
@@ -13,7 +18,7 @@ router = APIRouter(prefix='/chats', tags=['chats'])
 #Эндпоинт создания группового чата со списком людей, id создателя подтягивается автоматически.
 @router.post('/create_group')
 async def create_chat_group(chat_data: ChatGroupCreate, 
-                            members_data: list[uuid.UUID],
+                            members_data: list[int],
                             current_user = Depends(get_current_user), 
                             session: AsyncSession = Depends(get_session)):
     current_user_id = current_user.get('user_id')
@@ -32,7 +37,7 @@ async def create_chat_group(chat_data: ChatGroupCreate,
 #Эндпоинт создания личного чата с одним человеком, id создателя подтягивается автоматически.
 @router.post('/create_direct')
 async def create_chat_direct(chat_data: ChatDirectCreate, 
-                             member_id: uuid.UUID,
+                             member_id: int,
                              current_user = Depends(get_current_user), 
                              session: AsyncSession = Depends(get_session)):
     current_user_id = current_user.get('user_id')
@@ -51,7 +56,7 @@ async def create_chat_direct(chat_data: ChatDirectCreate,
 #Эндпоинт изменения информации (роли) участника чата. 
 @router.patch('/update_chat_info')
 async def update_chat(new_data: ChatUpdate,
-                      chat_id: uuid.UUID,
+                      chat_id: int,
                       user_data = Depends(get_current_user),
                       session: AsyncSession = Depends(get_session)):
     user_id = user_data.get('user_id')
@@ -64,7 +69,7 @@ async def update_chat(new_data: ChatUpdate,
 
 #Эндпоинт удаления чата в целом (для создателя) и у себя (для остальных ролей).
 @router.delete('/delete_chat')
-async def remove_group_chat(chat_id: uuid.UUID,
+async def remove_group_chat(chat_id: int,
                             user_data = Depends(get_current_user),
                             session: AsyncSession = Depends(get_session)):
     user_id = user_data.get('user_id')
@@ -77,8 +82,8 @@ async def remove_group_chat(chat_id: uuid.UUID,
 
 #Эндпоинт приглашения пользователя в чат.
 @router.post('/invite_user') #TODO добавить проверку настроек приватности пользователя
-async def invite_chat_member(chat_id: uuid.UUID,
-                          members_data: list[uuid.UUID] | None,
+async def invite_chat_member(chat_id: int,
+                          members_data: list[int] | None,
                           user_data = Depends(get_current_user),
                           session: AsyncSession = Depends(get_session)):
     user_id = user_data.get('user_id')
@@ -91,8 +96,8 @@ async def invite_chat_member(chat_id: uuid.UUID,
 
 #Эндпоинт удаления участника чата.
 @router.delete('/kick_user')
-async def kick_chat_member(chat_id: uuid.UUID,
-                           to_kick_id: uuid.UUID,
+async def kick_chat_member(chat_id: int,
+                           to_kick_id: int,
                            user_data = Depends(get_current_user),
                            session: AsyncSession = Depends(get_session)): #TODO Добавить проверку прав пользователя, который кикает.
     user_id = user_data.get('user_id')
@@ -100,5 +105,13 @@ async def kick_chat_member(chat_id: uuid.UUID,
         result = await kick_chatmember(chat_id=chat_id, user_id=to_kick_id, session=session)
         return result
     
+    except ValueError as e:
+        raise e
+    
+@router.get('/user_chats')
+async def get_user_chats(user_id: int, session: AsyncSession = Depends(get_session)):
+    try:
+        results = await read_user_chats(user_id, session)
+        return results
     except ValueError as e:
         raise e

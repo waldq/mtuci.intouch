@@ -1,22 +1,41 @@
-from sqlmodel import SQLModel, Field
+from sqlalchemy import BigInteger, Enum as SQLEnum, ForeignKey
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from datetime import datetime, date, time
-from enum import Enum
-import uuid
+import enum
+
+from app.core.deps import gen_next_id
+from app.db.base_class import Base
 
 #Модель с типами чатов.
-class MessageType(str, Enum):
+class MessageType(str, enum.Enum):
     TEXT = 'text'
     IMAGE = 'image'
     FILE = 'file'
 
 #Таблица сообщений.
-class Message(SQLModel, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    sender_id: uuid.UUID = Field(foreign_key='user.id', index=True)
-    chat_id: uuid.UUID = Field(foreign_key='chat.id', index=True)
-    content: str
-    msg_type: MessageType = Field(default=MessageType.TEXT)
-    reply_to_id: uuid.UUID | None = Field(
-        default=None, foreign_key='message.id', index=True)
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+class Message(Base):
+    __tablename__ = 'message'
+
+    id: Mapped[int] = mapped_column(
+        BigInteger, 
+        default=gen_next_id, 
+        primary_key=True, 
+        index=True)
+    sender_id: Mapped[int] = mapped_column(
+        BigInteger, 
+        ForeignKey('user.id'), 
+        index=True)
+    chat_id: Mapped[int] = mapped_column(
+        BigInteger, 
+        ForeignKey('chat.id'), 
+        index=True)
+    content: Mapped[str]
+    msg_type: Mapped[MessageType] = mapped_column(
+        SQLEnum(MessageType), 
+        default=MessageType.TEXT)
+    reply_to_id: Mapped[int | None] = mapped_column(
+        ForeignKey('message.id'), 
+        default=None, 
+        index=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(default=datetime.now)

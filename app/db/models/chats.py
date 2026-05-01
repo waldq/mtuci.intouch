@@ -1,32 +1,46 @@
-from sqlmodel import SQLModel, Field
-from datetime import datetime, date, time
-from enum import Enum
-import uuid
+from sqlalchemy import BigInteger, Enum as SQLEnum, ForeignKey
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from datetime import datetime
+import enum
+
+from app.core.deps import gen_next_id
+from app.db.base_class import Base
+
 
 #Модель для создания типов чатов.
-class ChatType(str, Enum):
+class ChatType(str, enum.Enum):
     DIRECT = 'direct'
     GROUP = 'group'
 
 #Таблица чатов.
-class Chat(SQLModel, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    chat_type: ChatType = Field(default=ChatType.DIRECT)
-    title: str | None = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.now)
+class Chat(Base):
+    __tablename__ = 'chat'
+
+    id: Mapped[int] = mapped_column(
+        BigInteger, 
+        primary_key=True, 
+        default=gen_next_id)
+    chat_type: Mapped[ChatType] = mapped_column(
+        SQLEnum(ChatType), 
+        default=ChatType.DIRECT)
+    title: Mapped[str | None] = mapped_column(default=None)
 
 #Модель с ролями пользователей в чате.
-class ChatMembersRoles(str, Enum):
+class ChatMembersRoles(str, enum.Enum):
     CREATOR = 'creator'
     ADMIN = 'admin'
     MEMBER = 'member'
     DIRECT = 'direct'
 
 #Таблица, связывающая id чата и пользователя.
-class ChatMembers(SQLModel, table=True):
-    chat_id: uuid.UUID = Field(
-        foreign_key='chat.id', primary_key=True, index=True)
-    user_id: uuid.UUID = Field(
-        foreign_key='user.id', primary_key=True, index=True)
-    role: ChatMembersRoles = Field(default=ChatMembersRoles.MEMBER)
-    joined_at: datetime = Field(default_factory=datetime.now)
+class ChatMembers(Base):
+    __tablename__ = 'chatmembers'
+
+    chat_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey('chat.id'), primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey('user.id'), primary_key=True, index=True)
+    role: Mapped[ChatMembersRoles] = mapped_column(
+        SQLEnum(ChatMembersRoles), 
+        default=ChatMembersRoles.MEMBER)
+    joined_at: Mapped[datetime] = mapped_column(default=datetime.now)
