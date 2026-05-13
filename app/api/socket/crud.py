@@ -38,7 +38,7 @@ async def update_message(message_id: int, new_content: str, session: AsyncSessio
     statement = update(Message).where(Message.id == message_id)\
         .values(content=new_content, updated_at=datetime.now()).returning(Message)
     result = await session.execute(statement)
-    updated_message = result.scalar_one()
+    updated_message = result.scalar_one_or_none()
     await session.commit()
     return updated_message
 

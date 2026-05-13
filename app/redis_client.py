@@ -1,4 +1,6 @@
 import redis.asyncio as redis
+from wireup import injectable
+from typing import Any, AsyncGenerator
 
 from app.core.config import settings
 
@@ -18,8 +20,8 @@ class RedisClient:
         pool = await cls.get_pool()
         return redis.Redis(connection_pool=pool, decode_responses=True)
 
-
-async def get_redis():
+@injectable
+async def get_redis() -> AsyncGenerator[redis.Redis, Any]:
     client = await RedisClient.get_client()
     try:
         yield client
@@ -37,6 +39,12 @@ def get_refresh_key(jti: str) -> str:
 
 def get_sessions_key(user_id: str) -> str:
     return f"sessions:{user_id}"
+
+def get_client_public_static_key(session_id: str) -> str:
+    return f"handshake:{session_id}"
+
+def get_server_public_static_key(session_id: str) -> str:
+    return f"handshake:{session_id}"
 
 
 async def store_tokens(
@@ -63,9 +71,33 @@ async def store_tokens(
 
     # Добавляем session_id в список сессий пользователя
     sessions_key = get_sessions_key(user_id)
-    await redis_client.sadd(sessions_key, session_id)
+    redis_client.sadd(sessions_key, session_id)
     await redis_client.expire(
         sessions_key, settings.REFRESH_TOKEN_EXPIRE_TIME * 24 * 3600
+    )
+
+async def store_client_public_static_key(
+    redis_client: redis.Redis,
+    session_id: str,
+    client_public_static_key: str
+    ):
+    public_key = get_client_public_static_key(session_id)
+    await redis_client.setex(
+        public_key,
+        30,
+        client_public_static_key
+    )
+
+async def store_server_public_static_key(
+    redis_client: redis.Redis,
+    session_id: str,
+    server_public_static_key: str
+    ):
+    public_key = get_server_public_static_key(session_id)
+    await redis_client.setex(
+        public_key,
+        30,
+        server_public_static_key
     )
 
 

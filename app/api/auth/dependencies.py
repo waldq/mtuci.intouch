@@ -2,20 +2,21 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException, status, Request
 import jwt
 from jwt.exceptions import InvalidTokenError
+from wireup import Injected, inject_from_container
+from typing import Annotated
+import redis.asyncio as redis
 
-from app.api.users.crud import get_user_by_login
 from app.core.config import settings
-from app.api.auth.schemas import TokenData
-from app.db.database import get_session
 from app.redis_client import *
+from app.dep_inj import container
 
 # Объект, обращающийся к tokenUrl /auth/login, передаёт туда логин и пароль и возвращает токен.
 # По факту самостоятельно он ничего не возвращает, но при успешной авторизации даёт права доступа к эндпоинтам.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
 
-
+@inject_from_container(container)
 async def get_current_user(
-    redis_client: redis.Redis = Depends(get_redis),
+    redis_client: Annotated[redis.Redis, Injected[get_redis]],
     token: str = Depends(oauth2_scheme)
 ):
     """

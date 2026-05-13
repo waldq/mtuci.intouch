@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from wireup import Injected
 
 from app.api.auth.dependencies import get_current_user
 from app.api.chats.crud import (create_group_chat, 
@@ -19,8 +20,8 @@ router = APIRouter(prefix='/chats', tags=['chats'])
 @router.post('/create_group')
 async def create_chat_group(chat_data: ChatGroupCreate, 
                             members_data: list[int],
-                            current_user = Depends(get_current_user), 
-                            session: AsyncSession = Depends(get_session)):
+                            current_user: Injected[get_current_user], 
+                            session: Injected[get_session]):
     current_user_id = current_user.get('user_id')
     try:
         new_chat = await create_group_chat(
@@ -38,8 +39,8 @@ async def create_chat_group(chat_data: ChatGroupCreate,
 @router.post('/create_direct')
 async def create_chat_direct(chat_data: ChatDirectCreate, 
                              member_id: int,
-                             current_user = Depends(get_current_user), 
-                             session: AsyncSession = Depends(get_session)):
+                             current_user: Injected[get_current_user], 
+                             session: Injected[get_session]):
     current_user_id = current_user.get('user_id')
     try:
         new_chat = await create_direct_chat(
@@ -57,8 +58,8 @@ async def create_chat_direct(chat_data: ChatDirectCreate,
 @router.patch('/update_chat_info')
 async def update_chat(new_data: ChatUpdate,
                       chat_id: int,
-                      user_data = Depends(get_current_user),
-                      session: AsyncSession = Depends(get_session)):
+                      user_data: Injected[get_current_user], 
+                      session: Injected[get_session]):
     user_id = user_data.get('user_id')
     try:
         new_chat_info = await update_chat_info(new_data=new_data, chat_id=chat_id, session=session)
@@ -70,8 +71,8 @@ async def update_chat(new_data: ChatUpdate,
 #Эндпоинт удаления чата в целом (для создателя) и у себя (для остальных ролей).
 @router.delete('/delete_chat')
 async def remove_group_chat(chat_id: int,
-                            user_data = Depends(get_current_user),
-                            session: AsyncSession = Depends(get_session)):
+                            user_data: Injected[get_current_user], 
+                            session: Injected[get_session]):
     user_id = user_data.get('user_id')
     try:
         result = await delete_chat(chat_id=chat_id, user_id=user_id, session=session)
@@ -84,8 +85,8 @@ async def remove_group_chat(chat_id: int,
 @router.post('/invite_user') #TODO добавить проверку настроек приватности пользователя
 async def invite_chat_member(chat_id: int,
                           members_data: list[int] | None,
-                          user_data = Depends(get_current_user),
-                          session: AsyncSession = Depends(get_session)):
+                          user_data: Injected[get_current_user], 
+                          session: Injected[get_session]):
     user_id = user_data.get('user_id')
     try:
         results = await add_chatmembers(chat_id=chat_id, members_data=members_data, session=session)
@@ -98,8 +99,8 @@ async def invite_chat_member(chat_id: int,
 @router.delete('/kick_user')
 async def kick_chat_member(chat_id: int,
                            to_kick_id: int,
-                           user_data = Depends(get_current_user),
-                           session: AsyncSession = Depends(get_session)): #TODO Добавить проверку прав пользователя, который кикает.
+                           user_data: Injected[get_current_user], 
+                           session: Injected[get_session]): #TODO Добавить проверку прав пользователя, который кикает.
     user_id = user_data.get('user_id')
     try:
         result = await kick_chatmember(chat_id=chat_id, user_id=to_kick_id, session=session)
@@ -109,7 +110,7 @@ async def kick_chat_member(chat_id: int,
         raise e
     
 @router.get('/user_chats')
-async def get_user_chats(user_id: int, session: AsyncSession = Depends(get_session)):
+async def get_user_chats(user_id: int, session: Injected[get_session]):
     try:
         results = await read_user_chats(user_id, session)
         return results

@@ -13,7 +13,7 @@ class UserRead(BaseModel):
     register_date: datetime
 
 
-class UserUpdate(BaseModel):
+class UserUpdatePublic(BaseModel):
     username: str | None
     tag: str | None
     birthday: datetime | None

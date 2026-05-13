@@ -4,40 +4,23 @@ from socketio.exceptions import ConnectionError
 from fastapi import APIRouter, Depends
 from fastapi.requests import Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from wireup import Injected
 
 from app.api.auth.dependencies import get_current_user
-from app.db.database import get_session, engine
-from app.api.users.crud import get_user_by_id
+from app.db.database import get_session
 from app.api.socket.crud import create_message
 from app.api.socket.schemas import MessageSend
+from app.api.socket.server import sio
 
-sio = socketio.AsyncServer()
 
 router = APIRouter(prefix='/socket', tags=['socket'])
-
-#Обработчик события "connect".
-@sio.on('connect')  # TODO
-async def connect_handler(sid, environ, auth):
-    token = auth.get('token') if auth else None
-    if not token:
-        return False
-    try:
-        user_data = await get_current_user(token=token)
-        user_id = user_data.get('user_id')
-        async with get_session() as session:
-            user = await get_user_by_id(user_id, session)
-
-            await sio.save_session(sid, {'username': user.username, 'user_id': user_id})
-
-    except Exception as e:
-        return False
 
 
 @router.post('/chats/{chat_id}/messages')  # TODO
 async def send_message_handler(message: MessageSend,
                                chat_id: int,
-                               user_data=Depends(get_current_user),
-                               session: AsyncSession = Depends(get_session)):
+                               user_data: Injected[get_current_user],
+                               session: Injected[get_session]):
     user_id = user_data.get('user_id')
     try:
         new_message = await create_message(sender_id=user_id,
@@ -62,18 +45,7 @@ async def send_message_handler(message: MessageSend,
         raise e
 
 
-@sio.on('disconnect')  # TODO
-async def disconnect_handler(sid):
-    async with sio.session(sid) as session_data:
-        user_id = session_data.get('user_id')
 
-    if user_id:
-        async with get_session() as session:
-            user = await get_user_by_id(user_id, session)
-            user.last_seen_date = datetime.now()
-
-            session.add(user)
-            await session.commit()
 
 
 @sio.on('join_chat')  # TODO

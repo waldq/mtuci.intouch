@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession, AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase
+from wireup import injectable
+from typing import AsyncGenerator, Any
 
 from app.db.models.chats import *
 from app.db.models.messages import *
@@ -22,6 +23,7 @@ async def create_db():
 
 # Функция, создающая сессию для взаимодействия с бдшкой. В каждом эндпоинте своя сессия.
 # После выполнения кода сессия автоматически закрывается.
-async def get_session():
+@injectable
+async def get_session() -> AsyncGenerator[AsyncSession, Any]:
     async with async_session_maker() as session:
         yield session

@@ -13,7 +13,7 @@ from app.core.security import hash_password, create_access_token, create_refresh
 from app.core.deps import gen_next_id
 from app.db.database import get_session
 from app.redis_client import get_redis, store_tokens
-from app.api.users.crud import get_user_by_id
+from app.api.users.crud import get_user_auth_by_id
 
 # Создание роутера (считайте внешний объект FastAPI()).
 # Все эндпоинты будут иметь префикс /auth и группироваться в документации с тегом 'auth'.
@@ -58,19 +58,19 @@ async def login_user(response: Response,
         data={
             'sub': user.login,
             'session_id': session_id,
-            'user_id': user.id,
+            'user_id': user.user_id,
         },
         expires_delta=access_token_expires,
     )
     refresh_token_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_TIME)
     # Создаёт токен (строка из шестнадцатиричных цифр). Шифрует в нём логин и длительность токена.
     refresh_token, refresh_jti = create_refresh_token(
-        data={'sub': str(user.id), 'session_id': session_id},
+        data={'sub': str(user.user_id), 'session_id': session_id},
         expires_delta=refresh_token_expires,
     )
 
     await store_tokens(
-        redis_client, user.id, session_id, access_token, refresh_jti
+        redis_client, str(user.user_id), session_id, access_token, refresh_jti
     )
 
     response.set_cookie(
@@ -126,7 +126,7 @@ async def refresh_access_token(request: Request,
         raise HTTPException(status_code=401, detail="Token mismatch")
 
     # 4. Создаем НОВЫЙ access токен
-    user = await get_user_by_id(user_id, session)
+    user = await get_user_auth_by_id(user_id, session)
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_TIME)
     access_token = create_access_token(
         data={

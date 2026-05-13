@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.core.config import settings
 from app.db.database import get_session
-from app.api.users.crud import get_user_by_login
+from app.api.users.crud import get_user_auth_by_login
 
 # Объект-утилита для хэширования по рекомендованному протоколу (Argon2).
 password_hash = PasswordHash.recommended()
@@ -25,7 +25,7 @@ def verify_password(plain_password: str, hashed_password: str):
 
 # Функция аутентификации (проверки логина и пароля с бд.). Возвращает юзера или False.
 async def authenticate_user(login: str, password: str, session: AsyncSession):
-    user = await get_user_by_login(login, session)
+    user = await get_user_auth_by_login(login, session)
     # даже если юзера нет, все равно проверяем пароли, чтобы время отрабатывания было +- одинаковое.
     if user is None:
         verify_password(password, DUMMY_HASH)

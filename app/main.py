@@ -3,6 +3,7 @@ from fastapi import FastAPI, Depends
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 import socketio
+import wireup
 
 from app.db.database import create_db, get_session
 import app.api.auth.auth as auth
@@ -10,8 +11,8 @@ import app.api.users.users as users
 import app.api.socket.socket as socket
 import app.api.miscellaneous.miscellaneous as miscellaneous
 import app.api.chats.chats as chats
-from app.api.auth.dependencies import get_current_user
 from app.redis_client import RedisClient
+from app.dep_inj import container
 
 
 @asynccontextmanager

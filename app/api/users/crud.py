@@ -1,14 +1,14 @@
 from datetime import datetime
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.user import User
+from app.db.models.user import User, UserAuth, UserPublic
 from app.db.database import get_session
-from app.api.users.schemas import UserUpdate
+from app.api.users.schemas import UserUpdatePublic
 
 # Функция создания пользователя в бд.
-async def update_user(user_to_update: UserUpdate, user: User, session: AsyncSession):
+async def update_user(user_to_update: UserUpdatePublic, user: User, session: AsyncSession):
     user_data = user_to_update.model_dump(exclude_unset=True)
     for key, value in user_data.items():
         setattr(user, key, value)
@@ -20,13 +20,32 @@ async def update_user(user_to_update: UserUpdate, user: User, session: AsyncSess
 
 
 # Функция получания юзера по логину, sql-запрос.
-async def get_user_by_login(login: str, session: AsyncSession):
-    statement = select(User).where(User.login == login)
+async def get_user_auth_by_login(login: str, session: AsyncSession):
+    statement = select(UserAuth).where(UserAuth.login == login)
     results = await session.execute(statement=statement)
     return results.scalar_one_or_none()
 
 # Функция получания юзера по id, sql-запрос.
-async def get_user_by_id(id: int, session: AsyncSession):
-    statement = select(User).where(User.id == id)
+async def get_user_base_by_id(user_id: int, session: AsyncSession):
+    statement = select(User).where(User.id == user_id)
     results = await session.execute(statement=statement)
     return results.scalar_one_or_none()
+
+async def get_user_auth_by_id(user_id: int, session: AsyncSession):
+    statement = select(UserAuth).where(UserAuth.user_id == user_id)
+    results = await session.execute(statement=statement)
+    return results.scalar_one_or_none()
+
+async def get_user_public_by_id(user_id: int, session: AsyncSession):
+    statement = select(UserPublic).where(UserPublic.user_id == user_id)
+    results = await session.execute(statement=statement)
+    return results.scalar_one_or_none()
+
+async def update_user_pub_key(user_id: int, public_key: str, session: AsyncSession):
+    user = await session.execute(update(UserAuth)\
+                                 .where(UserAuth.user_id == user_id)\
+                                    .values(public_static_key=public_key)\
+                                        .returning(User))
+    if not user:
+        raise ValueError
+    return {'result': 'User public static key updated successfully.'}

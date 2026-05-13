@@ -1,5 +1,5 @@
 from sqlalchemy import BigInteger, Enum as SQLEnum, ForeignKey
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
 import enum
 
