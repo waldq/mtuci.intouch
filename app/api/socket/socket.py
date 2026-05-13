@@ -1,34 +1,39 @@
-import socketio
-from datetime import datetime
-from socketio.exceptions import ConnectionError
-from fastapi import APIRouter, Depends
-from fastapi.requests import Request
+from fastapi import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
-from wireup import Injected
+from typing import Annotated
 
-from app.api.auth.dependencies import get_current_user
 from app.db.database import get_session
 from app.api.socket.crud import create_message
-from app.api.socket.schemas import MessageSend
 from app.api.socket.server import sio
 
 
 router = APIRouter(prefix='/socket', tags=['socket'])
 
 
-@router.post('/chats/{chat_id}/messages')  # TODO
-async def send_message_handler(message: MessageSend,
-                               chat_id: int,
-                               user_data: Injected[get_current_user],
-                               session: Injected[get_session]):
+
+@sio.on('send_message')
+async def send_message_handler(sid, data):
+    print("HANDLER CALLED", sid, data)
+    user_data = await sio.get_session(sid)
+    print("SESSION:", user_data)
+    if not user_data:
+        return
     user_id = user_data.get('user_id')
+    if not user_id:
+        return
+    chat_id = data.get('room_id')
+    message = data.get('message', {})
     try:
-        new_message = await create_message(sender_id=user_id,
-                                           chat_id=chat_id,
-                                           content=message.content,
-                                           msg_type=message.msg_type,
-                                           reply_to_id=message.reply_to_id,
-                                           session=session)
+        async for session in get_session():
+            new_message = await create_message(
+                sender_id=user_id,
+                chat_id=chat_id,
+                content=message.get('content'),
+                msg_type=message.get('msg_type'),
+                reply_to_id=message.get('reply_to_id'),
+                session=session
+            )
+            break
 
         data = {
             'id': str(new_message.id),
@@ -45,14 +50,11 @@ async def send_message_handler(message: MessageSend,
         raise e
 
 
-
-
-
 @sio.on('join_chat')  # TODO
 async def join_chat_handler(sid, room_id):
-    sio.enter_room(sid, room_id)
+    await sio.enter_room(sid, room_id)
 
 
-@sio.on('leave_room')  # TODO
+@sio.on('leave_chat')  # TODO
 async def leave_room_handler(sid, room_id):
-    sio.leave_room(sid, room_id)
+   await sio.leave_room(sid, room_id)

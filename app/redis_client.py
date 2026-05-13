@@ -1,5 +1,4 @@
 import redis.asyncio as redis
-from wireup import injectable
 from typing import Any, AsyncGenerator
 
 from app.core.config import settings
@@ -20,7 +19,7 @@ class RedisClient:
         pool = await cls.get_pool()
         return redis.Redis(connection_pool=pool, decode_responses=True)
 
-@injectable
+
 async def get_redis() -> AsyncGenerator[redis.Redis, Any]:
     client = await RedisClient.get_client()
     try:

@@ -2,23 +2,22 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException, status, Request
 import jwt
 from jwt.exceptions import InvalidTokenError
-from wireup import Injected, inject_from_container
 from typing import Annotated
 import redis.asyncio as redis
+from typing import Any
 
 from app.core.config import settings
 from app.redis_client import *
-from app.dep_inj import container
 
 # Объект, обращающийся к tokenUrl /auth/login, передаёт туда логин и пароль и возвращает токен.
 # По факту самостоятельно он ничего не возвращает, но при успешной авторизации даёт права доступа к эндпоинтам.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
 
-@inject_from_container(container)
+
 async def get_current_user(
-    redis_client: Annotated[redis.Redis, Injected[get_redis]],
+    redis_client: redis.Redis = Depends(get_redis),
     token: str = Depends(oauth2_scheme)
-):
+    ) -> dict[str, Any]:
     """
     Зависимость для защищенных эндпоинтов.
     Проверяет access токен из заголовка Authorization.
@@ -56,3 +55,30 @@ async def get_current_user(
         )
 
     return {"user_id": user_id, "session_id": session_id}
+
+async def validate_socket_token(redis_client, token):
+    try:
+        payload = jwt.decode(token, settings.ACCESS_SECRET_KEY,
+                             algorithms=[settings.ALGORITHM])
+
+        if payload.get("type") != "access":
+            return None
+
+        user_id = payload.get("user_id")
+        session_id = payload.get("session_id")
+
+        if not user_id or not session_id:
+            return None
+
+        token_exists = await check_access_token_in_redis(
+            redis_client, user_id, session_id
+        )
+
+        if not token_exists:
+            return None
+
+        return {"user_id": user_id, "session_id": session_id}
+    
+    except Exception as e:
+        return None
+

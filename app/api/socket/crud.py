@@ -22,6 +22,7 @@ async def create_message(
         session.add(message)
         await session.commit()
         await session.refresh(message)
+        return message
 
     except Exception as e:
         await session.rollback()
