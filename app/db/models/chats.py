@@ -4,7 +4,7 @@ from datetime import datetime
 import enum
 
 from app.core.deps import gen_next_id
-from app.db.base_class import Base
+from app.db.base_class import Base, SnowflakeString
 
 
 #Модель для создания типов чатов.
@@ -16,8 +16,8 @@ class ChatType(str, enum.Enum):
 class Chat(Base):
     __tablename__ = 'chat'
 
-    id: Mapped[int] = mapped_column(
-        BigInteger, 
+    id: Mapped[str] = mapped_column(
+        SnowflakeString, 
         primary_key=True, 
         default=gen_next_id)
     chat_type: Mapped[ChatType] = mapped_column(
@@ -36,10 +36,10 @@ class ChatMembersRoles(str, enum.Enum):
 class ChatMembers(Base):
     __tablename__ = 'chatmembers'
 
-    chat_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey('chat.id'), primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey('user.id'), primary_key=True, index=True)
+    chat_id: Mapped[str] = mapped_column(
+        SnowflakeString, ForeignKey('chat.id'), primary_key=True, index=True)
+    user_id: Mapped[str] = mapped_column(
+        SnowflakeString, ForeignKey('user.id'), primary_key=True, index=True)
     role: Mapped[ChatMembersRoles] = mapped_column(
         SQLEnum(ChatMembersRoles), 
         default=ChatMembersRoles.MEMBER)

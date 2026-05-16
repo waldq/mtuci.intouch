@@ -3,14 +3,14 @@ from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
 
 from app.core.deps import gen_next_id
-from app.db.base_class import Base
+from app.db.base_class import Base, SnowflakeString
 
 # Базовая таблица пользователя.
 class User(Base):
     __tablename__ = 'user'
 
-    id: Mapped[int] = mapped_column(
-        BigInteger, 
+    id: Mapped[str] = mapped_column(
+        SnowflakeString, 
         default=gen_next_id, 
         primary_key=True, 
         index=True
@@ -21,8 +21,8 @@ class User(Base):
 class UserAuth(Base):
     __tablename__ = 'userauth'
 
-    user_id: Mapped[int] = mapped_column(
-        BigInteger, 
+    user_id: Mapped[str] = mapped_column(
+        SnowflakeString, 
         ForeignKey('user.id'), 
         primary_key=True,
         index=True
@@ -46,8 +46,8 @@ class UserPublic(Base):
     __tablename__ = 'userpublic'
 
 
-    user_id: Mapped[int] = mapped_column(
-        BigInteger, 
+    user_id: Mapped[str] = mapped_column(
+        SnowflakeString, 
         ForeignKey('user.id'), 
         primary_key=True,
         index=True

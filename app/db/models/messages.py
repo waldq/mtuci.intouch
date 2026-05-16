@@ -4,7 +4,7 @@ from datetime import datetime
 import enum
 
 from app.core.deps import gen_next_id
-from app.db.base_class import Base
+from app.db.base_class import Base, SnowflakeString
 
 #Модель с типами чатов.
 class MessageType(str, enum.Enum):
@@ -16,24 +16,24 @@ class MessageType(str, enum.Enum):
 class Message(Base):
     __tablename__ = 'message'
 
-    id: Mapped[int] = mapped_column(
-        BigInteger, 
+    id: Mapped[str] = mapped_column(
+        SnowflakeString, 
         default=gen_next_id, 
         primary_key=True, 
         index=True)
-    sender_id: Mapped[int] = mapped_column(
-        BigInteger, 
+    sender_id: Mapped[str] = mapped_column(
+        SnowflakeString, 
         ForeignKey('user.id'), 
         index=True)
-    chat_id: Mapped[int] = mapped_column(
-        BigInteger, 
+    chat_id: Mapped[str] = mapped_column(
+        SnowflakeString, 
         ForeignKey('chat.id'), 
         index=True)
     content: Mapped[str]
     msg_type: Mapped[MessageType] = mapped_column(
         SQLEnum(MessageType), 
         default=MessageType.TEXT)
-    reply_to_id: Mapped[int | None] = mapped_column(
+    reply_to_id: Mapped[str | None] = mapped_column(
         ForeignKey('message.id'), 
         default=None, 
         index=True)

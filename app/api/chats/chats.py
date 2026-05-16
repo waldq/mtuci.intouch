@@ -109,7 +109,10 @@ async def kick_chat_member(chat_id: int,
         raise e
     
 @router.get('/user_chats')
-async def get_user_chats(user_id: int, session: AsyncSession = Depends(get_session)):
+async def get_user_chats(
+    user_data = Depends(get_current_user), 
+    session: AsyncSession = Depends(get_session)):
+    user_id = user_data.get('user_id')
     try:
         results = await read_user_chats(user_id, session)
         return results
