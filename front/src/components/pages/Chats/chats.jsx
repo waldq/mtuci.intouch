@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet";
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import "./chats.css";
+import { useSocket } from "./useSocket";
 import{
     MessageSquare as ChatIcon,
     LayoutGrid as GridIcon,
@@ -19,15 +20,41 @@ import EmojiPicker from 'emoji-picker-react'
 
 
 const Chats = () => {
-  const [activeChatId, setActiveChatId] = useState(1);
+  const [messages, setMessages] = useState([]);
+
+  const [activeChatId, setActiveChatId] = useState();
 
   const [messageText, setMessageText] = useState('');
 
-  const [contacts, setContacts] = useState([
-    {id: 1, name: 'Ope', lastMessage:"Gee, it's been good news all day...", time: "4:27", online: true },
-    {id: 2, name: 'Oleg', lastMessage:"suck!!!", time: "12:45", online: false },
-    {id: 3, name: 'Vlad', lastMessage:"fuck you", time: "yesterday", online: true },
-  ]);
+  const [contacts, setContacts] = useState([]);
+
+  useEffect(() => {
+    const fetchChats = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+        
+        const response = await fetch(`http://localhost:8000/chats/user_chats/`, {
+          headers: {'Authorization': `Bearer ${token}`}
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log(data);
+          setContacts(data);
+
+          if (data.length > 0 && !activeChatId) {
+            setActiveChatId(data[0].id);
+            console.log(activeChatId)
+          }
+        }
+      } catch(err) {
+        console.error("Ошибка при получении чатов:", err);
+      }
+    };
+
+    fetchChats();
+  }, []);
 
   const [groups, setGroups] = useState([
   { id: 101, name: 'Group1', lastMessage: 'message1', time: '10:00', online: true },
@@ -37,12 +64,49 @@ const Chats = () => {
   const [activeTab,setActiveTab]=useState('personal')
 
   const [showEmojiPicker,setShowEmojiPicker]=useState(false);
+  
+  const onMessageReceived = useCallback((newMessage) => {
+    console.log("Получено новое сообщение:", newMessage);
+    setMessages((prev) => [...prev, newMessage]);
+  }, []); 
+  
+  const socket = useSocket(activeChatId, onMessageReceived);
 
   const handleSendMessage = () => {
     if (messageText.trim() === '') return;
-    console.log("Отправлено сообщение:", messageText);
+
+    if (!socket || !socket.connected) {
+      console.error("ОШИБКА: Сокет не подключен! Отправка невозможна.");
+      return
+    }
+    console.log('handleSendmsg',activeChatId)
+    const messageData = {
+      room_id: activeChatId,
+      message: {
+            content: messageText,
+            msg_type: "text",
+            reply_to_id: null
+        }
+    }
+
+    if (socket){
+      console.log(messageData)
+      socket.emit("send_message", messageData);
+    }
+
     setMessageText('');
+    setShowEmojiPicker(false);
   };
+
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
 
   
@@ -122,18 +186,27 @@ const Chats = () => {
       </header>
 
       <div className="messages-area">
-        <div className="message-row">
-          <img src="ope-avatar.jpg" className="avatar-xs" />
-          <div className="message-content">
-            <p className="message-meta">Ope <span>4:27</span></p>
-            <div className="bubble">
-              <p>Gee, it's been good news all day. I met someone special today...</p>
+        {messages.map((msg) => (
+          <div 
+            key={msg.id} 
+            className={`message-row ${msg.sender_id === 'my_id' ? 'own-message' : ''}`}
+          >
+            <img src="ope-avatar.jpg" className="avatar-xs" alt="avatar" />
+            <div className="message-content">
+              <p className="message-meta">
+                {msg.sender_id === 'my_id' ? 'Вы' : 'Ope'} 
+                <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </p>
+              <div className="bubble">
+                <p>{msg.content}</p>
+              </div>
             </div>
           </div>
-        </div>
+        ))}
         <div className="chat-image-wrapper">
           <img src="interior.jpg" alt="Interior" className="chat-image" />
         </div>
+        <div ref={messagesEndRef} />
       </div>
 
       <footer className="chat-footer">
@@ -144,8 +217,8 @@ const Chats = () => {
                   onEmojiClick={(emojiData) => {
                     setMessageText(prev => prev + emojiData.emoji);
                   }}
-                  theme="light" // или "dark" под твой дизайн
-                  searchDisabled={false} // можно включить поиск по смайлам
+                  theme="light"
+                  searchDisabled={false}
                 />
               </div>
             )}
