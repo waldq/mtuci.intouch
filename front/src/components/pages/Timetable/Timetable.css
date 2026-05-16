@@ -1,0 +1,376 @@
+:root {
+    --sidebar-width: 70px;
+    --timetable-width: 380px;
+    --bg-main: #f8f9fa;
+    --bg-white: #ffffff;
+    --text-dark: #1a1a1a;
+    --text-gray: #6c6c6f;
+    --accent-purple: #8a5cc9;
+    --accent-dark: #2A006D;
+    --border-light: #e5e5ea;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.timetable-container {
+    display: flex;
+    height: 100vh;
+    background-color: var(--bg-white);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-dark);
+}
+
+.nav-sidebar {
+    width: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+    border-right: 1px solid var(--border-light);
+}
+
+.nav-logo {
+    width: 44px;
+    height: 44px;
+    background: #f2f2f7;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+    color: var(--accent-dark);
+}
+
+.nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    color: var(--text-gray);
+}
+
+.nav-footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    color: var(--text-gray);
+}
+
+.user-avatar-placeholder {
+    width: 36px;
+    height: 36px;
+    background: var(--accent-purple);
+    border-radius: 50%;
+}
+
+.timetable-sidebar {
+    width: var(--timetable-width);
+    border-right: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f9fa;
+}
+
+.timetable-header {
+    padding: 24px 20px 16px;
+    background-color: var(--bg-white);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header-top h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent-dark);
+}
+
+.week-info {
+    display: flex;
+    justify-content: center;
+}
+
+.week-number {
+    font-size: 14px;
+    font-weight: 600;
+    background: #f2f2f7;
+    padding: 8px 24px;
+    border-radius: 20px;
+    color: var(--accent-purple);
+}
+
+.days-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 16px 20px;
+    background-color: var(--bg-white);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.day-tab {
+    flex: 1;
+    padding: 10px 0;
+    border: none;
+    background: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-gray);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.day-tab.active {
+    background-color: var(--accent-purple);
+    color: white;
+}
+
+.day-tab:hover:not(.active) {
+    background-color: #f2f2f7;
+}
+
+.schedule-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.lesson-card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+}
+
+.lesson-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.lesson-time {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--accent-purple);
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.lesson-subject {
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 4px;
+    margin-bottom: 0;
+    color: var(--text-dark);
+}
+
+.empty-schedule {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-gray);
+}
+
+.timetable-info-sidebar {
+    flex: 1;
+    border-left: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.right-panel-content {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    padding: 20px;
+    gap: 20px;
+    overflow-y: auto;
+    align-items: flex-start;
+}
+
+.calendar-container {
+    flex: 2;
+    background: #f8f9fa;
+    border-radius: 20px;
+    padding: 16px;
+    height: fit-content;
+}
+
+.calendar-large {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.calendar-month-large {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.month-title-large {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent-dark);
+}
+
+.month-nav-large {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    color: var(--text-gray);
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.month-nav-large:hover {
+    background: #e5e5ea;
+    color: var(--accent-purple);
+}
+
+.calendar-weekdays-large {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-gray);
+    text-align: center;
+}
+
+.calendar-days-large {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.calendar-day {
+    padding: 8px 0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-dark);
+}
+
+.calendar-day:hover:not(.empty) {
+    background: var(--accent-purple);
+    color: white;
+}
+
+.calendar-day.empty {
+    cursor: default;
+}
+
+.calendar-day.today {
+    background: var(--accent-purple);
+    color: white;
+    opacity: 0.7;
+}
+
+.calendar-day.selected {
+    background: var(--accent-dark);
+    color: white;
+}
+
+.detail-container {
+    flex: 1.5;
+    background: #f8f9fa;
+    border-radius: 20px;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.detail-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--accent-purple);
+}
+
+.detail-header h4 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent-dark);
+}
+
+.detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.detail-card {
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    transition: all 0.2s;
+    border-left: 4px solid var(--accent-purple);
+}
+
+.detail-card:hover {
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.detail-time {
+    font-size: 13px;
+    color: var(--accent-purple);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.detail-subject {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text-dark);
+}
+
+.detail-type {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    display: inline-block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    background-color: rgba(138, 92, 201, 0.15);
+    color: var(--accent-purple);
+}
+
+.detail-room {
+    font-size: 14px;
+    color: var(--text-gray);
+    margin-bottom: 6px;
+}
+
+.detail-teacher {
+    font-size: 13px;
+    color: var(--text-gray);
+}
+
+.empty-detail {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-gray);
+}
