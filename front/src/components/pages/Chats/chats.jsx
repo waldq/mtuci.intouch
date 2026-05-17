@@ -34,7 +34,7 @@ const Chats = () => {
         const token = localStorage.getItem('access_token');
         if (!token) return;
         
-        const response = await fetch(`http://localhost:8000/chats/user_chats/`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/chats/user_chats/`, {
           headers: {'Authorization': `Bearer ${token}`}
         });
         

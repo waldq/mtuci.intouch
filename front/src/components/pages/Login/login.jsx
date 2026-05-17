@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import './login.css';
 
+
 const Login = () => {
     const navigate = useNavigate();
 
@@ -43,8 +44,10 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        console.log('URL:', `${process.env.REACT_APP_API_URL}/auth/login`);
+
         try {
-            const response = await fetch('http://127.0.0.1:8000/auth/login', {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
