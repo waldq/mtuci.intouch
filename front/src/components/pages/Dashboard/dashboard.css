@@ -1,0 +1,109 @@
+:root {
+    --sidebar-width: 70px;
+    --timetable-width: 380px;
+    --bg-main: #f8f9fa;
+    --bg-white: #ffffff;
+    --text-dark: #1a1a1a;
+    --text-gray: #6c6c6f;
+    --accent-purple: #8a5cc9;
+    --accent-dark: #2A006D;
+    --border-light: #e5e5ea;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.dashboard-container {
+    display: flex;
+    height: 100vh;
+    background-color: #e8e0f7;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-dark);
+}
+
+.nav-sidebar {
+    width: var(--sidebar-width);
+    background-color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+    border-right: 1px solid var(--border-light);
+}
+
+.nav-logo {
+    width: 44px;
+    height: 44px;
+    background: #f2f2f7;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+    color: var(--accent-dark);
+}
+
+.nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    color: var(--text-gray);
+}
+
+.nav-footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    color: var(--text-gray);
+}
+
+.user-avatar-placeholder {
+    width: 36px;
+    height: 36px;
+    background: var(--accent-purple);
+    border-radius: 50%;
+}
+
+.dashboard-main {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.section-bar {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-dark));
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.6s ease;
+}
+
+.section-bar:hover {
+    cursor: pointer;
+    transform: scale(1.01);
+    background: linear-gradient(135deg, #9b6fd4, #3a0080);
+}
+
+.section-bar-text {
+    font-size: 24px;
+    font-weight: 600;
+    color: white;
+    letter-spacing: 0.5px;
+}
+
+.calendar-icon {
+    color: white;
+    width: 28px;
+    height: 28px;
+}
+
