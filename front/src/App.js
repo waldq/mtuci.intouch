@@ -3,7 +3,7 @@ import './App.css';
 import Register from './components/pages/Register/register';
 import Login from './components/pages/Login/login';
 import Chats from './components/pages/Chats/chats';
-import Timetable from './components/pages/Timetable/Timetable';
+import Timetable from './components/pages/Timetable/timetable';
 
 function App() {
     return (
