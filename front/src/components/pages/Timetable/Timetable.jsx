@@ -11,8 +11,14 @@ import {
     ChevronLeft as ChevronLeftIcon,
     ChevronRight as ChevronRightIcon
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Timetable = () => {
+    const navigate = useNavigate();
+
+    const handleClick = () => {
+        navigate('/dashboard')
+    }
     const getCurrentWeek = () => {
         const now = new Date();
         const startOfYear = new Date(now.getFullYear(), 0, 1);
@@ -187,7 +193,7 @@ const Timetable = () => {
                     <CalendarIcon />
                 </div>
                 <div className="nav-links">
-                    <GridIcon />
+                    <GridIcon onClick={handleClick}/>
                     <CallIcon />
                     <PlusCircleIcon />
                 </div>

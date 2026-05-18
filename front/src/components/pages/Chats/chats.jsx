@@ -17,9 +17,16 @@ import{
     Send as SendIcon
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react'
+import { useNavigate } from "react-router-dom";
 
 
 const Chats = () => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate('/dashboard')
+  };
+
   const [messages, setMessages] = useState([]);
 
   const [activeChatId, setActiveChatId] = useState();
@@ -120,7 +127,7 @@ const Chats = () => {
         <ChatIcon />
       </div>
       <div className="nav-links">
-        <GridIcon />
+        <GridIcon onClick={handleClick}/>
         <CallIcon />
         <PlusCircleIcon />
       </div>
