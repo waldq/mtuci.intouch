@@ -34,6 +34,12 @@
   border-right: 1px solid var(--border-light);
 }
 
+.nav-sidebar svg:hover {
+    cursor: pointer;
+    color: #3a0080;
+    transition: color 0.2s ease;
+}
+
 .nav-logo {
   width: 44px;
   height: 44px;

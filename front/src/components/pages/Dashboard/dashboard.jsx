@@ -25,9 +25,9 @@ const Dashboard = () => {
                     <Blocks />
                 </div>
                 <div className="nav-links">
-                    <GridIcon />
-                    <CallIcon />
-                    <PlusCircleIcon />
+                    <GridIcon className="grid-icon"/>
+                    <CallIcon className="call-icon"/>
+                    <PlusCircleIcon className="plus-icon"/>
                 </div>
                 <div className="nav-footer">
                     <Bell />
