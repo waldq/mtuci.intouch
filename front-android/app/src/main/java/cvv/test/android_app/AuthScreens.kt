@@ -5,11 +5,28 @@ import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,39 +38,81 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation.Companion.None
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cvv.test.android_app.ui.theme.*
-import kotlinx.coroutines.launch
 import androidx.core.content.edit
-import androidx.compose.ui.text.input.VisualTransformation.Companion.None
+import cvv.test.android_app.ui.theme.AuthFieldBackground
+import cvv.test.android_app.ui.theme.AuthTextColor
+import kotlinx.coroutines.launch
 import retrofit2.Response
 
+
+private val NunitoSansFamily = FontFamily(
+    Font(R.font.nunito_sans, FontWeight.Normal)
+)
 @Composable
 fun AuthScreen() {
-    var currentScreen by remember { mutableStateOf("auth") }
-    var isRegisterMode by remember { mutableStateOf(false) }
+    var currentScreen by remember { mutableStateOf("start") }
 
-    if (currentScreen == "chats") {
-        ChatsScreen()
-    } else {
-        if (isRegisterMode) {
-            RegisterScreen(
-                onSwitchToLogin = { isRegisterMode = false },
-                onNavigateToChats = { currentScreen = "chats" }
+    when (currentScreen) {
+        "start" -> StartScreen(
+            onNavigateToLogin = { currentScreen = "login" },
+            onNavigateToRegister = { currentScreen = "register" }
+        )
+        "login" -> LoginScreen(
+            onSwitchToRegister = { currentScreen = "register" },
+            onNavigateToChats = { currentScreen = "chats" }
+        )
+        "register" -> RegisterScreen(
+            onSwitchToLogin = { currentScreen = "login" },
+            onNavigateToChats = { currentScreen = "chats" }
+        )
+        "chats" -> MainScreen()
+    }
+}
+
+@Composable
+fun StartScreen(onNavigateToLogin: () -> Unit, onNavigateToRegister: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .paint(
+                painter = painterResource(id = R.drawable.background),
+                contentScale = ContentScale.Crop
             )
-        } else {
-            LoginScreen(
-                onSwitchToRegister = { isRegisterMode = true },
-                onNavigateToChats = { currentScreen = "chats" }
-            )
-        }
+            .padding(horizontal = 40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "InTouch",
+            fontSize = 54.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = NunitoSansFamily,
+            color = AuthTextColor,
+            modifier = Modifier.padding(bottom = 80.dp)
+        )
+
+        AuthButton(
+            text = "Войти",
+            onClick = onNavigateToLogin
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        AuthButton(
+            text = "Создать аккаунт",
+            onClick = onNavigateToRegister
+        )
     }
 }
 
@@ -136,9 +195,10 @@ fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
         Text(
             text = "Нет аккаунта",
             color = AuthTextColor,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.clickable { onSwitchToRegister() }
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = NunitoSansFamily,
+            modifier = Modifier.clickable { onSwitchToRegister() },
         )
     }
 }
@@ -244,8 +304,9 @@ fun RegisterScreen(onSwitchToLogin: () -> Unit, onNavigateToChats: () -> Unit) {
         Text(
             text = "Есть аккаунт?",
             color = AuthTextColor,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = NunitoSansFamily,
             modifier = Modifier.clickable { onSwitchToLogin() }
         )
     }
@@ -268,7 +329,8 @@ fun AuthTextField(
                     textAlign = TextAlign.Center,
                     color = AuthTextColor.copy(alpha = 0.7f),
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Black,
+                    fontFamily = NunitoSansFamily,
                 )
             }
         },
@@ -288,7 +350,8 @@ fun AuthTextField(
             textAlign = TextAlign.Center,
             color = AuthTextColor,
             fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Black,
+            fontFamily = NunitoSansFamily
         ),
         visualTransformation = if (isPassword) PasswordVisualTransformation() else None,
         keyboardOptions = if (isPassword) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
@@ -315,7 +378,8 @@ fun AuthButton(text: String, onClick: () -> Unit, enabled: Boolean = true) {
         Text(
             text = text,
             fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Black,
+            fontFamily = NunitoSansFamily
         )
     }
 }
@@ -323,6 +387,12 @@ fun AuthButton(text: String, onClick: () -> Unit, enabled: Boolean = true) {
 private fun saveToken(context: Context, token: String) {
     val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
     prefs.edit { putString("access_token", token) }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun StartPreview() {
+    StartScreen({}, {})
 }
 
 @Preview(showBackground = true)
