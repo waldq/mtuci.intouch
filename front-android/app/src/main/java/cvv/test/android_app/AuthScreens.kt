@@ -50,6 +50,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
+import cvv.test.android_app.api.AuthResponse
+import cvv.test.android_app.api.RegisterRequest
+import cvv.test.android_app.api.RetrofitClient
 import cvv.test.android_app.ui.theme.AuthFieldBackground
 import cvv.test.android_app.ui.theme.AuthTextColor
 import kotlinx.coroutines.launch

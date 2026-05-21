@@ -1,5 +1,6 @@
 package cvv.test.android_app
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,6 +32,14 @@ import androidx.compose.ui.unit.sp
 import cvv.test.android_app.ui.theme.AuthFieldBackground
 import cvv.test.android_app.ui.theme.AuthTextColor
 
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import cvv.test.android_app.api.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
 data class ChatItem(
     val id: Int,
     val name: String,
@@ -41,16 +50,23 @@ data class ChatItem(
 @Composable
 fun MainScreen() {
     val selectedTab = remember { mutableStateOf(0) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var statusText by remember { mutableStateOf("Нажмите для проверки") }
+    var lastChatId by remember { mutableStateOf<Long?>(null) }
 
-    val dummyChats = listOf(
-        ChatItem(1, "Жека", "Сиксевен пепе-фа", "5:67"),
-        ChatItem(2, "Потап", "Ватафа ты чё творишь", "2:28"),
-        ChatItem(3, "Саня", "Завтра в МТУСИ?", "18:00"),
-        ChatItem(4, "Мама", "Купи хлеба по дороге", "17:45"),
-        ChatItem(5, "Разраб", "Баг пофикшен, проверяй", "15:20"),
-        ChatItem(6, "Жека", "Ещё одно сообщение", "12:00"),
-        ChatItem(7, "Потап", "Опять ты за своё", "10:30")
-    )
+    // Подключаемся к сокету при загрузке экрана
+    LaunchedEffect(Unit) {
+        val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
+        val token = prefs.getString("access_token", "") ?: ""
+        if (token.isNotEmpty()) {
+            ChatManager.connect(token)
+        }
+
+        ChatManager.connectionStatus.collect { status ->
+            statusText = "Статус: $status"
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -64,34 +80,130 @@ fun MainScreen() {
             Box(modifier = Modifier.weight(1f)) {
                 when (selectedTab.value) {
                     0 -> {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            // Header
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 40.dp, start = 24.dp, end = 24.dp, bottom = 16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Чаты",
-                                    fontSize = 28.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = AuthTextColor
-                                )
-                                IconButton(onClick = { /* Search */ }) {
-                                    Icon(Icons.Default.Search, contentDescription = "Поиск", tint = AuthTextColor)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(vertical = 16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = statusText,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AuthTextColor,
+                                modifier = Modifier.padding(bottom = 24.dp)
+                            )
+
+                            // 1. GET: Получить чаты пользователя
+                            TestButton("Получить все чаты (GET)") {
+                                val response = RetrofitClient.chatsApi.getUserChats("Bearer ${getToken(context)}")
+                                if (response.isSuccessful) {
+                                    val chats = response.body()
+                                    statusText = "Чатов: ${chats?.size}"
+                                    Log.d("TestAPI", "Чаты: $chats")
+                                } else {
+                                    Log.e("TestAPI", "Error getting chats: ${response.code()} ${response.errorBody()?.string()}")
                                 }
                             }
 
-                            // Chat List
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 16.dp)
-                            ) {
-                                items(dummyChats) { chat ->
-                                    ChatListItem(chat)
+                            // 2. POST: Создать личный чат
+                            TestButton("Создать личный чат (POST)") {
+                                val response = RetrofitClient.chatsApi.createDirectChat(
+                                    token = "Bearer ${getToken(context)}",
+                                    memberId = 315408804688695296L
+                                )
+                                if (response.isSuccessful) {
+                                    val chat = response.body()
+                                    lastChatId = chat?.id
+                                    statusText = "Создан личный чат: ${chat?.id}"
+                                    Log.d("TestAPI", "Direct response: $chat")
+                                } else {
+                                    Log.e("TestAPI", "Error creating direct chat: ${response.code()} ${response.errorBody()?.string()}")
                                 }
+                            }
+
+                            // 3. POST: Создать групповой чат
+                            TestButton("Создать группу (POST)") {
+                                val response = RetrofitClient.chatsApi.createGroupChat(
+                                    token = "Bearer ${getToken(context)}",
+                                    payload = CreateGroupChatPayload(
+                                        chatData = ChatGroupCreate(title = "Тестовая группа"),
+                                        membersData = listOf(315408804688695296L)
+                                    )
+                                )
+                                if (response.isSuccessful) {
+                                    val chat = response.body()
+                                    lastChatId = chat?.id
+                                    statusText = "Создана группа: ${chat?.id}"
+                                    Log.d("TestAPI", "Group response: $chat")
+                                } else {
+                                    Log.e("TestAPI", "Error creating group chat: ${response.code()} ${response.errorBody()?.string()}")
+                                }
+                            }
+
+                            // 4. PATCH: Обновить инфо чата
+                            TestButton("Обновить инфо (PATCH)") {
+                                lastChatId?.let { id ->
+                                    val response = RetrofitClient.chatsApi.updateChatInfo(
+                                        token = "Bearer ${getToken(context)}",
+                                        chatId = id,
+                                        updateData = ChatUpdate(title = "Обновленное название")
+                                    )
+                                    if (response.isSuccessful) {
+                                        statusText = "Название обновлено для $id"
+                                    } else {
+                                        Log.e("TestAPI", "Error updating chat: ${response.code()} ${response.errorBody()?.string()}")
+                                    }
+                                } ?: run { Log.w("TestAPI", "Attempted update without chatId") }
+                            }
+
+                            // 5. POST: Пригласить пользователя
+                            TestButton("Пригласить юзера (POST)") {
+                                lastChatId?.let { id ->
+                                    val response = RetrofitClient.chatsApi.inviteUser(
+                                        token = "Bearer ${getToken(context)}",
+                                        chatId = id,
+                                        membersData = listOf(315408804688695296L)
+                                    )
+                                    if (response.isSuccessful) {
+                                        statusText = "Юзер приглашен в $id"
+                                    } else {
+                                        Log.e("TestAPI", "Error inviting user: ${response.code()} ${response.errorBody()?.string()}")
+                                    }
+                                } ?: run { Log.w("TestAPI", "Attempted invite without chatId") }
+                            }
+
+                            // 6. DELETE: Исключить пользователя
+                            TestButton("Кикнуть юзера (DELETE)") {
+                                lastChatId?.let { id ->
+                                    val response = RetrofitClient.chatsApi.kickUser(
+                                        token = "Bearer ${getToken(context)}",
+                                        chatId = id,
+                                        toKickId = 315408804688695296L
+                                    )
+                                    if (response.isSuccessful) {
+                                        statusText = "Юзер кикнут из $id"
+                                    } else {
+                                        Log.e("TestAPI", "Error kicking user: ${response.code()} ${response.errorBody()?.string()}")
+                                    }
+                                } ?: run { Log.w("TestAPI", "Attempted kick without chatId") }
+                            }
+
+                            // 7. DELETE: Удалить чат
+                            TestButton("Удалить чат (DELETE)") {
+                                lastChatId?.let { id ->
+                                    val response = RetrofitClient.chatsApi.deleteChat(
+                                        token = "Bearer ${getToken(context)}",
+                                        chatId = id
+                                    )
+                                    if (response.isSuccessful) {
+                                        statusText = "Чат $id удален"
+                                        lastChatId = null
+                                    } else {
+                                        Log.e("TestAPI", "Error deleting chat: ${response.code()} ${response.errorBody()?.string()}")
+                                    }
+                                } ?: run { Log.w("TestAPI", "Attempted delete without chatId") }
                             }
                         }
                     }
@@ -108,6 +220,39 @@ fun MainScreen() {
             CreateBottomPanel(selectedTab)
         }
     }
+}
+
+@Composable
+fun TestButton(text: String, onClick: suspend () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    Button(
+        onClick = {
+            scope.launch {
+                try {
+                    onClick()
+                } catch (e: Exception) {
+                    Log.e("TestAPI", "Network/Unexpected error", e)
+                }
+            }
+        },
+        modifier = Modifier
+            .padding(horizontal = 40.dp, vertical = 8.dp)
+            .fillMaxWidth()
+            .height(50.dp),
+        shape = RoundedCornerShape(25.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = AuthFieldBackground,
+            contentColor = AuthTextColor
+        )
+    ) {
+        Text(text = text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+fun getToken(context: android.content.Context): String {
+    val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
+    return prefs.getString("access_token", "") ?: ""
 }
 
 @Composable

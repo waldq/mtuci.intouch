@@ -1,11 +1,13 @@
-package cvv.test.android_app
+package cvv.test.android_app.api
 
+import android.util.Log
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okio.Buffer
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.http.Body
@@ -49,7 +51,20 @@ object RetrofitClient {
         coerceInputValues = true
     }
 
-    private val okHttpClient = OkHttpClient.Builder().build()
+    private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            val request = chain.request()
+            Log.d("TestAPI", "--> SENDING ${request.method}: ${request.url}")
+            
+            request.body?.let { body ->
+                val buffer = Buffer()
+                body.writeTo(buffer)
+                Log.d("TestAPI", "--> BODY: ${buffer.readUtf8()}")
+            }
+            
+            chain.proceed(request)
+        }
+        .build()
 
     val authApi: AuthApi by lazy {
         Retrofit.Builder()
@@ -58,5 +73,14 @@ object RetrofitClient {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(AuthApi::class.java)
+    }
+
+    val chatsApi: ChatsApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(ChatsApi::class.java)
     }
 }
