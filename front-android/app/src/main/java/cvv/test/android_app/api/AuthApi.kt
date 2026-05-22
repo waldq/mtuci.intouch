@@ -13,6 +13,8 @@ import retrofit2.Retrofit
 import retrofit2.http.Body
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
+import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 
 @Serializable
@@ -31,6 +33,13 @@ data class AuthResponse(
     val login: String? = null
 )
 
+@Serializable
+data class UserProfile(
+    val user_id: String? = null,
+    val username: String? = null,
+    val login: String? = null
+)
+
 interface AuthApi {
     @POST("auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
@@ -41,6 +50,9 @@ interface AuthApi {
         @Field("username") login: String,
         @Field("password") password: String
     ): Response<AuthResponse>
+
+    @GET("users/me")
+    suspend fun getMe(@Header("Authorization") token: String): Response<UserProfile>
 }
 
 object RetrofitClient {

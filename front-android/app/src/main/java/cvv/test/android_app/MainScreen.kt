@@ -47,10 +47,18 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.unit.sp
 import cvv.test.android_app.api.ChatManager
+import cvv.test.android_app.api.IncomingMessage
 import cvv.test.android_app.ui.theme.AuthFieldBackground
 import cvv.test.android_app.ui.theme.AuthTextColor
+import kotlinx.coroutines.launch
 
 const val GROUP_ID = 315830186291499008L
 
@@ -59,28 +67,41 @@ fun MainScreen() {
     val selectedTab = remember { mutableStateOf(0) }
     val context = LocalContext.current
     var messageText by remember { mutableStateOf("") }
+    val messages = remember { mutableStateListOf<IncomingMessage>() }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    var myUserId by remember { mutableStateOf<String?>(null) }
     
-    // collectAsState сам запускает корутину и слушает поток данных вечно
-    val lastMessage by ChatManager.messages.collectAsState(initial = null)
     val statusText by ChatManager.connectionStatus.collectAsState(initial = "Disconnected")
 
-    // Логируем каждое изменение lastMessage
-    LaunchedEffect(lastMessage) {
-        lastMessage?.let { msg ->
-            Log.d("MainScreen", "--- NEW MESSAGE RECEIVED ---")
-            Log.d("MainScreen", "Content: ${msg.content}")
-            Log.d("MainScreen", "From: ${msg.senderId}")
-            Log.d("MainScreen", "----------------------------")
+    LaunchedEffect(Unit) {
+        ChatManager.messages.collect { msg ->
+            messages.add(msg)
+            scope.launch {
+                if (messages.isNotEmpty()) {
+                    listState.animateScrollToItem(messages.size - 1)
+                }
+            }
         }
     }
 
-    // Инициализация подключения (только один раз)
     LaunchedEffect(Unit) {
         val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
         val token = prefs.getString("access_token", "") ?: ""
         if (token.isNotEmpty()) {
+            val bearerToken = "Bearer $token"
             ChatManager.connect(token)
             ChatManager.joinChat(GROUP_ID)
+            
+            // Получаем свой профиль, чтобы знать свой ID
+            try {
+                val response = cvv.test.android_app.api.RetrofitClient.authApi.getMe(bearerToken)
+                if (response.isSuccessful) {
+                    myUserId = response.body()?.user_id
+                }
+            } catch (e: Exception) {
+                Log.e("MainScreen", "Failed to fetch profile: ${e.message}")
+            }
         }
     }
 
@@ -97,25 +118,32 @@ fun MainScreen() {
                 when (selectedTab.value) {
                     0 -> {
                         Column(
-                            modifier = Modifier.fillMaxSize().padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)
                         ) {
-                            Text("Режим отладки", color = AuthTextColor, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                            Text("Статус: $statusText", color = AuthTextColor.copy(alpha = 0.7f))
+                            Spacer(modifier = Modifier.height(12.dp))
                             
-                            // Вывод последнего сообщения прямо на экран для теста
-                            lastMessage?.let {
-                                Text(
-                                    text = "Последнее: ${it.content}",
-                                    color = Color.White,
-                                    modifier = Modifier.padding(16.dp).background(Color.Black.copy(0.5f), RoundedCornerShape(8.dp)).padding(8.dp)
-                                )
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                verticalArrangement = Arrangement.Bottom,
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp)
+                            ) {
+                                items(messages) { msg ->
+                                    val isMe = msg.senderId == myUserId
+                                    MessageBubble(
+                                        text = msg.content,
+                                        isMe = isMe,
+                                        senderId = msg.senderId
+                                    )
+                                }
                             }
 
-                            Spacer(modifier = Modifier.height(32.dp))
-
-                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 OutlinedTextField(
                                     value = messageText,
                                     onValueChange = { messageText = it },
@@ -149,6 +177,41 @@ fun MainScreen() {
                 }
             }
             CreateBottomPanel(selectedTab)
+        }
+    }
+}
+
+@Composable
+fun MessageBubble(text: String, isMe: Boolean, senderId: String?) {
+    val alignment = if (isMe) Alignment.End else Alignment.Start
+    val bubbleColor = if (isMe) AuthFieldBackground.copy(alpha = 0.9f) else Color.White.copy(alpha = 0.8f)
+    val textColor = if (isMe) AuthTextColor else Color.Black
+    val label = if (isMe) "me" else "user${senderId?.takeLast(4) ?: "???"}"
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalAlignment = alignment
+    ) {
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = AuthTextColor.copy(alpha = 0.7f),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+        )
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(
+                    topStart = 16.dp,
+                    topEnd = 16.dp,
+                    bottomStart = if (isMe) 16.dp else 4.dp,
+                    bottomEnd = if (isMe) 4.dp else 16.dp
+                ))
+                .background(bubbleColor)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(text = text, color = textColor, fontSize = 16.sp)
         }
     }
 }
