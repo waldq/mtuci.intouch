@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import "./timetable.css";
+import "./Timetable.css";
 import {
     Calendar as CalendarIcon,
     LayoutGrid as GridIcon,
