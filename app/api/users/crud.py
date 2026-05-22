@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import select, update
+from sqlalchemy import select, update, or_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,3 +49,21 @@ async def update_user_pub_key(user_id: int, public_key: str, session: AsyncSessi
     if not user:
         raise ValueError
     return {'result': 'User public static key updated successfully.'}
+
+async def search_user_public_by_username_or_tag(
+        session: AsyncSession,
+        username_or_tag: str | None = None, 
+        ):
+    if username_or_tag is not None:
+        statement = select(UserPublic)\
+                        .where(
+                            or_(
+                                UserPublic.username.like(f'{username_or_tag.lower()}%'),
+                                UserPublic.tag.like(f'{username_or_tag.lower()}%')
+                            )
+                        )
+        results = await session.scalars(statement)
+        return results
+    else:
+        return {'result': 'Empty request.'}
+

@@ -40,11 +40,25 @@ def get_sessions_key(user_id: str) -> str:
     return f"sessions:{user_id}"
 
 def get_client_public_static_key(session_id: str) -> str:
-    return f"handshake:{session_id}"
+    return f"handshake:client:public:static:key:{session_id}"
+
+def get_client_public_ephem_key(session_id: str) -> str:
+    return f"handshake:client:public:ephem:key:{session_id}"
+
+def get_server_private_static_key(session_id: str) -> str:
+    return f"handshake:server:private:static:{session_id}"
 
 def get_server_public_static_key(session_id: str) -> str:
-    return f"handshake:{session_id}"
+    return f"handshake:server:public:static:{session_id}"
 
+def get_server_private_ephem_key(session_id: str) -> str:
+    return f"handshake:server:private:ephem:{session_id}"
+
+def get_server_public_ephem_key(session_id: str) -> str:
+    return f"handshake:server:public:ephem:{session_id}"
+
+def get_handshake_start_key(session_id: str) -> str:
+    return f"handshake:start:key:{session_id}"
 
 async def store_tokens(
     redis_client: redis.Redis,
@@ -78,27 +92,86 @@ async def store_tokens(
 async def store_client_public_static_key(
     redis_client: redis.Redis,
     session_id: str,
-    client_public_static_key: str
+    client_public_static_key_bytes_hex: str
     ):
     public_key = get_client_public_static_key(session_id)
     await redis_client.setex(
         public_key,
         30,
-        client_public_static_key
+        client_public_static_key_bytes_hex
+    )
+
+async def store_client_public_ephem_key(
+    redis_client: redis.Redis,
+    session_id: str,
+    client_public_ephem_key_bytes_hex: str
+    ):
+    public_key = get_client_public_ephem_key(session_id)
+    await redis_client.setex(
+        public_key,
+        30,
+        client_public_ephem_key_bytes_hex
+    )
+
+async def store_server_private_static_key(
+    redis_client: redis.Redis,
+    session_id: str,
+    server_private_static_key_hex: str
+    ):
+    private_key = get_server_private_static_key(session_id)
+    await redis_client.setex(
+        private_key,
+        30,
+        server_private_static_key_hex
     )
 
 async def store_server_public_static_key(
     redis_client: redis.Redis,
     session_id: str,
-    server_public_static_key: str
+    server_public_static_key_bytes_hex: str
     ):
     public_key = get_server_public_static_key(session_id)
     await redis_client.setex(
         public_key,
         30,
-        server_public_static_key
+        server_public_static_key_bytes_hex
     )
 
+async def store_server_private_ephem_key(
+    redis_client: redis.Redis,
+    session_id: str,
+    server_private_ephem_key_hex: str
+    ):
+    private_key = get_server_public_ephem_key(session_id)
+    await redis_client.setex(
+        private_key,
+        30,
+        server_private_ephem_key_hex
+    )
+
+async def store_server_public_ephem_key(
+    redis_client: redis.Redis,
+    session_id: str,
+    server_public_ephem_key_bytes_hex: str
+    ):
+    public_key = get_server_public_ephem_key(session_id)
+    await redis_client.setex(
+        public_key,
+        30,
+        server_public_ephem_key_bytes_hex
+    )
+
+async def store_handshake_first_key(
+    redis_client: redis.Redis,
+    session_id: str,
+    handshake_first_key_bytes_hex: str    
+    ):
+    handshake_key = get_handshake_start_key(session_id)
+    await redis_client.setex(
+        handshake_key,
+        30,
+        handshake_first_key_bytes_hex
+    )
 
 async def get_refresh_token_data(
     redis_client: redis.Redis,
