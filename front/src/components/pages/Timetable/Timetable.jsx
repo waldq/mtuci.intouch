@@ -1,24 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import "./Timetable.css";
+import "./timetable.css";
 import {
     Calendar as CalendarIcon,
-    LayoutGrid as GridIcon,
-    Phone as CallIcon,
-    PlusCircle as PlusCircleIcon,
-    Bell,
-    Settings as SettingsIcon,
     Clock as ClockIcon,
     ChevronLeft as ChevronLeftIcon,
     ChevronRight as ChevronRightIcon
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import Navigation from '../Navigation/Navigation';
 
 const Timetable = () => {
-    const navigate = useNavigate();
-
-    const handleClick = () => {
-        navigate('/dashboard')
-    }
     const getCurrentWeek = () => {
         const now = new Date();
         const startOfYear = new Date(now.getFullYear(), 0, 1);
@@ -188,21 +178,7 @@ const Timetable = () => {
 
     return (
         <div className="timetable-container">
-            <nav className="nav-sidebar">
-                <div className="nav-logo">
-                    <CalendarIcon />
-                </div>
-                <div className="nav-links">
-                    <GridIcon onClick={handleClick}/>
-                    <CallIcon />
-                    <PlusCircleIcon />
-                </div>
-                <div className="nav-footer">
-                    <Bell />
-                    <SettingsIcon />
-                    <div className="user-avatar-placeholder"></div>
-                </div>
-            </nav>
+            <Navigation />
 
             <aside className="timetable-sidebar">
                 <div className="timetable-header">

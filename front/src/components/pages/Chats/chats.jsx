@@ -1,13 +1,10 @@
 import { Helmet } from "react-helmet";
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback} from 'react';
+import { useNavigate } from "react-router-dom";
+import Navigation from '../Navigation/Navigation';
 import "./chats.css";
 import { useSocket } from "./useSocket";
 import{
-    MessageSquare as ChatIcon,
-    LayoutGrid as GridIcon,
-    Phone as CallIcon,
-    PlusCircle as PlusCircleIcon,
-    Bell as NotificationIcon,
     Settings as SettingsIcon,
     Edit3 as EditIcon,
     Video as VideoIcon,
@@ -119,24 +116,8 @@ const Chats = () => {
   return (
   <div className="messenger-container">
     
-    {/*панель навигации */}
-    <nav className="nav-sidebar">
-      <div className="nav-logo">
-        <ChatIcon />
-      </div>
-      <div className="nav-links">
-        <GridIcon />
-        <CallIcon />
-        <PlusCircleIcon />
-      </div>
-      <div className="nav-footer">
-        <NotificationIcon />
-        <SettingsIcon />
-        <img src="avatar-url.jpg" className="user-avatar" alt="Profile" />
-      </div>
-    </nav>
+    <Navigation />
 
-    {/*Список чатов */}
     <aside className="chats-sidebar">
       <div className="chats-header">
         <div className="header-top">
@@ -186,7 +167,6 @@ const Chats = () => {
       </div>
     </aside> 
 
-    {/*Окошко поиска людей*/}
     {showSearchWindow && (
       <div className="search-people-modal">
         <div className="search-modal-header">
@@ -207,8 +187,6 @@ const Chats = () => {
       </div>
     )}
 
-
-    {/*Окно чата */}
     <main className="chat-window">
       <header className="chat-header">
         <div className="current-user">
@@ -298,7 +276,6 @@ const Chats = () => {
       </footer>
     </main>
 
-    {/*Правая панель*/}
     <aside className="chats-info-sidebar">
       <div className="info-header">
         <h3>Новое</h3>
