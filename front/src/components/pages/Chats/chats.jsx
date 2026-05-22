@@ -14,19 +14,13 @@ import{
     Smile as EmojiIcon,
     Mic as MicIcon,
     Paperclip as PaperclipIcon,
-    Send as SendIcon
+    Send as SendIcon,
+    Search as SearchIcon
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react'
-import { useNavigate } from "react-router-dom";
 
 
 const Chats = () => {
-  const navigate = useNavigate();
-
-  const handleClick = () => {
-    navigate('/dashboard')
-  };
-
   const [messages, setMessages] = useState([]);
 
   const [activeChatId, setActiveChatId] = useState();
@@ -63,7 +57,7 @@ const Chats = () => {
     fetchChats();
   }, []);
 
-  const [groups, setGroups] = useState([
+  const [groups,setGroups] = useState([
   { id: 101, name: 'Group1', lastMessage: 'message1', time: '10:00', online: true },
   { id: 102, name: 'Group2', lastMessage: 'messadge1', time: 'Yesterday', online: true },
   ]);
@@ -71,6 +65,10 @@ const Chats = () => {
   const [activeTab,setActiveTab]=useState('personal')
 
   const [showEmojiPicker,setShowEmojiPicker]=useState(false);
+
+  const [showSearchWindow,setShowSearchWindow] = useState(false);
+
+  const [searchTag, setSearchTag] = useState('');
   
   const onMessageReceived = useCallback((newMessage) => {
     console.log("Получено новое сообщение:", newMessage);
@@ -127,7 +125,7 @@ const Chats = () => {
         <ChatIcon />
       </div>
       <div className="nav-links">
-        <GridIcon onClick={handleClick}/>
+        <GridIcon />
         <CallIcon />
         <PlusCircleIcon />
       </div>
@@ -143,7 +141,10 @@ const Chats = () => {
       <div className="chats-header">
         <div className="header-top">
           <h2>Недавние сообщения</h2>
-          <EditIcon className="icon-muted" />
+          <SearchIcon 
+          className="search-trigger-btn"
+          onClick={() => setShowSearchWindow(!showSearchWindow)}
+          style={{cursor: 'pointer'}}/>
         </div>
         <div className="tabs">
           <button className={`tab ${activeTab === 'personal' ? 'active' : ''}`}
@@ -158,24 +159,54 @@ const Chats = () => {
       </div>
       
       <div className="chats-list">
-        {(activeTab === 'personal' ? contacts : groups).map((user) => (
-          <div
-            key={user.id}
-            className={`chat-card ${activeChatId === user.id ? 'active' : ''}`}
-            onClick={() => setActiveChatId(user.id)}
-          >
-          <img src="ope-avatar.jpg" className="avatar-md" alt={user.name} />
-          <div className="chat-info">
-            <div className="chat-info-row">
-              <span className="user-name">{user.name}</span>
-              <span className="timestamp">{user.time}</span>
+        {(activeTab === 'personal' ? contacts : groups).map((chat) => {
+          let chatName="Noname"
+          if (chat.chat_type === "group") {
+            chatName= chat.title || String(chat.id).slice(-4)
+          } else {
+            chatName= `chat${String(chat.id).slice(-4)}`
+          }
+          return(
+            <div
+              key={chat.id}
+              className={`chat-card ${activeChatId === chat.id ? 'active' : ''}`}
+              onClick={() => setActiveChatId(chat.id)}
+            >
+            <img src="ope-avatar.jpg" className="avatar-md" alt={chatName} />
+            <div className="chat-info">
+              <div className="chat-info-row">
+                <span className="user-name">{chatName}</span>
+                <span className="timestamp">{chat.time}</span>
+              </div>
+              <p className="message-preview">{chat.lastMessage || "null"}</p>
             </div>
-            <p className="message-preview">{user.lastMessage}</p>
+          </div>
+          );
+        })}
+      </div>
+    </aside> 
+
+    {/*Окошко поиска людей*/}
+    {showSearchWindow && (
+      <div className="search-people-modal">
+        <div className="search-modal-header">
+          <h3>Найти</h3>
+        </div>
+        <div className="search-modal-body">
+          <div className="search-input-container">
+            <span className="dog-prefix">@</span>
+            <input 
+              type="text" 
+              placeholder="Введите тег..." 
+              className="tag-search-input"
+              value={searchTag}
+              onChange={(e) => setSearchTag(e.target.value)}
+            />
           </div>
         </div>
-        ))}
       </div>
-    </aside>
+    )}
+
 
     {/*Окно чата */}
     <main className="chat-window">
@@ -183,7 +214,18 @@ const Chats = () => {
         <div className="current-user">
           <img src="ope-avatar.jpg" className="avatar-sm" />
           <div>
-            <p className="user-name">Ope</p>
+            <p className="user-name">
+              {(() => {
+                const currentChat = contacts.find(c => c.id === activeChatId);
+                if (currentChat){
+                  if (currentChat.chat_type === 'group') {
+                    return currentChat.title;
+                  } else {
+                    return `user${String(currentChat.id).slice(-4)}`
+                  }
+                }
+              })()}
+            </p>
             <p className="status-online">Онлайн</p>
           </div>
         </div>

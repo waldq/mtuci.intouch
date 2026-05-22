@@ -461,6 +461,72 @@
   height: 400px !important; /* И высоту */
 }
 
+.search-people-modal {
+  position: absolute;
+  top: 75px; /* Аккурат под шапкой "Недавние сообщения" */
+  left: 70px; /* Сдвиг, чтобы не перекрывать левый Nav-Sidebar */
+  width: 320px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid #eef2f5;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeInModal 0.2s ease-out;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.search-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.search-modal-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2A006D;
+  margin: 0;
+}
+
+.search-input-container {
+  display: flex;
+  align-items: center;
+  background: #f4f6f8;
+  border-radius: 8px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.search-input-container:focus-within {
+  border-color: #4a90e2;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.dog-prefix {
+  font-size: 18px;
+  font-weight: 700;
+  color: #8a94a0;
+  margin-right: 6px;
+}
+
+.tag-search-input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+  color: #1a1c1e;
+  outline: none;
+}
+
+
 /* Общие стили аватарок */
 .avatar-md { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
 .avatar-sm { width: 40px; height: 40px; border-radius: 50%; }
