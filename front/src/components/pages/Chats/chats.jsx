@@ -1,20 +1,18 @@
 import { Helmet } from "react-helmet";
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback} from 'react';
+import { useNavigate } from "react-router-dom";
+import Navigation from '../Navigation/Navigation';
 import "./chats.css";
 import { useSocket } from "./useSocket";
 import{
-    MessageSquare as ChatIcon,
-    LayoutGrid as GridIcon,
-    Phone as CallIcon,
-    PlusCircle as PlusCircleIcon,
-    Bell as NotificationIcon,
     Settings as SettingsIcon,
     Edit3 as EditIcon,
     Video as VideoIcon,
     Smile as EmojiIcon,
     Mic as MicIcon,
     Paperclip as PaperclipIcon,
-    Send as SendIcon
+    Send as SendIcon,
+    Search as SearchIcon
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react'
 
@@ -34,7 +32,7 @@ const Chats = () => {
         const token = localStorage.getItem('access_token');
         if (!token) return;
         
-        const response = await fetch(`http://localhost:8000/chats/user_chats/`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/chats/user_chats/`, {
           headers: {'Authorization': `Bearer ${token}`}
         });
         
@@ -56,7 +54,7 @@ const Chats = () => {
     fetchChats();
   }, []);
 
-  const [groups, setGroups] = useState([
+  const [groups,setGroups] = useState([
   { id: 101, name: 'Group1', lastMessage: 'message1', time: '10:00', online: true },
   { id: 102, name: 'Group2', lastMessage: 'messadge1', time: 'Yesterday', online: true },
   ]);
@@ -64,6 +62,10 @@ const Chats = () => {
   const [activeTab,setActiveTab]=useState('personal')
 
   const [showEmojiPicker,setShowEmojiPicker]=useState(false);
+
+  const [showSearchWindow,setShowSearchWindow] = useState(false);
+
+  const [searchTag, setSearchTag] = useState('');
   
   const onMessageReceived = useCallback((newMessage) => {
     console.log("Получено новое сообщение:", newMessage);
@@ -114,29 +116,16 @@ const Chats = () => {
   return (
   <div className="messenger-container">
     
-    {/*панель навигации */}
-    <nav className="nav-sidebar">
-      <div className="nav-logo">
-        <ChatIcon />
-      </div>
-      <div className="nav-links">
-        <GridIcon />
-        <CallIcon />
-        <PlusCircleIcon />
-      </div>
-      <div className="nav-footer">
-        <NotificationIcon />
-        <SettingsIcon />
-        <img src="avatar-url.jpg" className="user-avatar" alt="Profile" />
-      </div>
-    </nav>
+    <Navigation />
 
-    {/*Список чатов */}
     <aside className="chats-sidebar">
       <div className="chats-header">
         <div className="header-top">
           <h2>Недавние сообщения</h2>
-          <EditIcon className="icon-muted" />
+          <SearchIcon 
+          className="search-trigger-btn"
+          onClick={() => setShowSearchWindow(!showSearchWindow)}
+          style={{cursor: 'pointer'}}/>
         </div>
         <div className="tabs">
           <button className={`tab ${activeTab === 'personal' ? 'active' : ''}`}
@@ -151,32 +140,70 @@ const Chats = () => {
       </div>
       
       <div className="chats-list">
-        {(activeTab === 'personal' ? contacts : groups).map((user) => (
-          <div
-            key={user.id}
-            className={`chat-card ${activeChatId === user.id ? 'active' : ''}`}
-            onClick={() => setActiveChatId(user.id)}
-          >
-          <img src="ope-avatar.jpg" className="avatar-md" alt={user.name} />
-          <div className="chat-info">
-            <div className="chat-info-row">
-              <span className="user-name">{user.name}</span>
-              <span className="timestamp">{user.time}</span>
+        {(activeTab === 'personal' ? contacts : groups).map((chat) => {
+          let chatName="Noname"
+          if (chat.chat_type === "group") {
+            chatName= chat.title || String(chat.id).slice(-4)
+          } else {
+            chatName= `chat${String(chat.id).slice(-4)}`
+          }
+          return(
+            <div
+              key={chat.id}
+              className={`chat-card ${activeChatId === chat.id ? 'active' : ''}`}
+              onClick={() => setActiveChatId(chat.id)}
+            >
+            <img src="ope-avatar.jpg" className="avatar-md" alt={chatName} />
+            <div className="chat-info">
+              <div className="chat-info-row">
+                <span className="user-name">{chatName}</span>
+                <span className="timestamp">{chat.time}</span>
+              </div>
+              <p className="message-preview">{chat.lastMessage || "null"}</p>
             </div>
-            <p className="message-preview">{user.lastMessage}</p>
+          </div>
+          );
+        })}
+      </div>
+    </aside> 
+
+    {showSearchWindow && (
+      <div className="search-people-modal">
+        <div className="search-modal-header">
+          <h3>Найти</h3>
+        </div>
+        <div className="search-modal-body">
+          <div className="search-input-container">
+            <span className="dog-prefix">@</span>
+            <input 
+              type="text" 
+              placeholder="Введите тег..." 
+              className="tag-search-input"
+              value={searchTag}
+              onChange={(e) => setSearchTag(e.target.value)}
+            />
           </div>
         </div>
-        ))}
       </div>
-    </aside>
+    )}
 
-    {/*Окно чата */}
     <main className="chat-window">
       <header className="chat-header">
         <div className="current-user">
           <img src="ope-avatar.jpg" className="avatar-sm" />
           <div>
-            <p className="user-name">Ope</p>
+            <p className="user-name">
+              {(() => {
+                const currentChat = contacts.find(c => c.id === activeChatId);
+                if (currentChat){
+                  if (currentChat.chat_type === 'group') {
+                    return currentChat.title;
+                  } else {
+                    return `user${String(currentChat.id).slice(-4)}`
+                  }
+                }
+              })()}
+            </p>
             <p className="status-online">Онлайн</p>
           </div>
         </div>
@@ -249,7 +276,6 @@ const Chats = () => {
       </footer>
     </main>
 
-    {/*Правая панель*/}
     <aside className="chats-info-sidebar">
       <div className="info-header">
         <h3>Новое</h3>

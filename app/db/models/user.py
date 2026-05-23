@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, String, LargeBinary, ForeignKey
+from sqlalchemy import BigInteger, String, LargeBinary, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
 
@@ -66,3 +66,8 @@ class UserPublic(Base):
         )
     last_seen_date: Mapped[datetime] = mapped_column(default=datetime.now)
     register_date: Mapped[datetime] = mapped_column(default=datetime.now)
+
+    __table_args__ = (
+        Index('idx_users_username_prefix', 'username', postgresql_ops={'username': 'text_pattern_ops'}),
+        Index('idx_users_tag_prefix', 'tag', postgresql_ops={'tag': 'text_pattern_ops'})
+    )

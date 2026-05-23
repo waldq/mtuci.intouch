@@ -1,24 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import "./Timetable.css";
+import "./timetable.css";
 import {
     Calendar as CalendarIcon,
-    LayoutGrid as GridIcon,
-    Phone as CallIcon,
-    PlusCircle as PlusCircleIcon,
-    Bell,
-    Settings as SettingsIcon,
     Clock as ClockIcon,
     ChevronLeft as ChevronLeftIcon,
     ChevronRight as ChevronRightIcon
 } from 'lucide-react';
+import Navigation from '../Navigation/Navigation';
 
 const Timetable = () => {
+    const [timetableData, setTimetableData] = useState(null);
+    const [error, setError] = useState(null);
+    const [currentWeek, setCurrentWeek] = useState('');
+
+    const userGroup = "БПИ2502";
+
     const getCurrentWeek = () => {
         const now = new Date();
         const startOfYear = new Date(now.getFullYear(), 0, 1);
         const weekNumber = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
         return weekNumber % 2 === 0 ? 'чётная' : 'нечётная';
     };
+
+    useEffect(() => {
+        const updateWeek = () => {
+            setCurrentWeek(getCurrentWeek());
+        };
+        
+        updateWeek();
+        
+        const interval = setInterval(updateWeek, 3600000);
+        
+        return () => clearInterval(interval);
+    }, []);
 
     const loadSavedData = () => {
         const savedDay = localStorage.getItem('selectedDay');
@@ -34,7 +48,6 @@ const Timetable = () => {
 
     const savedData = loadSavedData();
 
-    const [currentWeek] = useState(getCurrentWeek());
     const [selectedDay, setSelectedDay] = useState(savedData.selectedDay);
     const [currentDate, setCurrentDate] = useState(savedData.currentDate);
     const [selectedDate, setSelectedDate] = useState(savedData.selectedDate);
@@ -54,66 +67,41 @@ const Timetable = () => {
         localStorage.setItem('currentDate', currentDate.toISOString());
     }, [currentDate]);
 
-    const schedule = {
-        'нечётная': {
-            0: [
-                { time: '09:30-11:00', subject: 'Философия'},
-                { time: '11:15-12:45', subject: 'История России'},
-                { time: '13:15-14:45', subject: 'Ин. Яз'},
-                { time: '15:00-16:30', subject: 'История России'}
-            ],
-            1: [],
-            2: [],
-            3: [],
-            4: [],
-            5: [],
-            6: []
-        },
-        'чётная': {
-            0: [
-                { time: '13:00-14:30', subject: 'Высшая математика'},
-                { time: '15:10-16:40', subject: 'История России'}
-            ],
-            1: [],
-            2: [],
-            3: [],
-            4: [],
-            5: [],
-            6: []
+    const fetchTimetable = async (group, month) => {
+        setError(null);
+        
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/misc/timetable`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ group: group, month: month })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setTimetableData(data);
+            } else {
+                const errorData = await response.json();
+                setError(errorData.detail || "Ошибка при получении расписания");
+            }
+        } catch (err) {
+            setError("Ошибка соединения с сервером");
         }
     };
 
-    const fullSchedule = {
-        'нечётная': {
-            0: [
-                { time: '09:30-11:00', subject: 'Философия', room: 'Н-227', teacher: 'Макатов З.В.', type: 'Лекция' },
-                { time: '11:15-12:45', subject: 'История России', room: 'Н-334', teacher: 'Черникова Н.В.', type: 'Лекция' },
-                { time: '13:15-14:45', subject: 'Ин. Яз', room: 'Н-524/Н-504а', teacher: 'Денеко М.В.', type: 'Практическое занятие' },
-                { time: '15:00-16:30', subject: 'История России', room: 'Н-334', teacher: 'Черникова Н.В.', type: 'Лекция' }
-            ],
-            1: [],
-            2: [],
-            3: [],
-            4: [],
-            5: [],
-            6: []
-        },
-        'чётная': {
-            0: [
-                { time: '13:00-14:30', subject: 'Высшая математика', room: 'Н-505', teacher: 'Добрынина И.В.', type: 'Лекция' },
-                { time: '15:10-16:40', subject: 'История России', room: 'Н-504а', teacher: 'Черникова Н.В.', type: 'Лекция' }
-            ],
-            1: [],
-            2: [],
-            3: [],
-            4: [],
-            5: [],
-            6: []
-        }
-    };
+    useEffect(() => {
+        const month = currentDate.getMonth() + 1;
+        fetchTimetable(userGroup, month);
+    }, [currentDate]);
 
-    const currentSchedule = schedule[currentWeek][selectedDay] || [];
-    const selectedFullSchedule = fullSchedule[currentWeek][selectedDay] || [];
+    const currentSchedule = timetableData?.[currentWeek]?.[selectedDay] || [];
+    const selectedFullSchedule = timetableData?.[currentWeek]?.[selectedDay] || [];
     const selectedDayName = fullDays[selectedDay];
 
     const getDaysInMonth = (date) => {
@@ -182,21 +170,7 @@ const Timetable = () => {
 
     return (
         <div className="timetable-container">
-            <nav className="nav-sidebar">
-                <div className="nav-logo">
-                    <CalendarIcon />
-                </div>
-                <div className="nav-links">
-                    <GridIcon />
-                    <CallIcon />
-                    <PlusCircleIcon />
-                </div>
-                <div className="nav-footer">
-                    <Bell />
-                    <SettingsIcon />
-                    <div className="user-avatar-placeholder"></div>
-                </div>
-            </nav>
+            <Navigation />
 
             <aside className="timetable-sidebar">
                 <div className="timetable-header">
@@ -204,7 +178,8 @@ const Timetable = () => {
                         <h2>Расписание</h2>
                     </div>
                     <div className="week-info">
-                        <span className="week-number">№11, {currentWeek}</span>
+                        <span className="week-number">Неделя: {currentWeek}</span>
+                        {error && <span className="error">{error}</span>}
                     </div>
                 </div>
 
@@ -233,7 +208,7 @@ const Timetable = () => {
                         ))
                     ) : (
                         <div className="empty-schedule">
-                            <p>Выходной день</p>
+                            <p>В этот день пар нет</p>
                         </div>
                     )}
                 </div>

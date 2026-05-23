@@ -12,7 +12,7 @@ export const useSocket = (chatId, onMessageReceived) => {
             return;
         }
 
-        socketRef.current = io('http://localhost:8000', {
+        socketRef.current = io(`${process.env.REACT_APP_API_URL}`, {
             auth: { token:token },
             transports: ['websocket'],
         });
