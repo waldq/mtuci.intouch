@@ -1,6 +1,7 @@
 package cvv.test.android_app
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -59,15 +60,20 @@ import kotlinx.coroutines.launch
 import retrofit2.Response
 
 
+//Шрифт
 private val NunitoSansFamily = FontFamily(
     Font(R.font.nunito_sans, FontWeight.Normal)
 )
+
+//Логика переключения между экранами
 @Composable
 fun AuthScreen() {
     var currentScreen by remember { mutableStateOf("start") }
 
     when (currentScreen) {
         "start" -> StartScreen(
+            //Лямбда-функции которые передаются в кнопки, для реализации логики при нажатии
+            //В данном случае переключение между экранами
             onNavigateToLogin = { currentScreen = "login" },
             onNavigateToRegister = { currentScreen = "register" }
         )
@@ -83,6 +89,7 @@ fun AuthScreen() {
     }
 }
 
+//Начальный экран с названием
 @Composable
 fun StartScreen(onNavigateToLogin: () -> Unit, onNavigateToRegister: () -> Unit) {
     Column(
@@ -119,12 +126,14 @@ fun StartScreen(onNavigateToLogin: () -> Unit, onNavigateToRegister: () -> Unit)
     }
 }
 
+//Экран аутентификации
 @Composable
 fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var login by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    //state для выключения кнопки пока приложения ожидает ответ от сервера
     var isLoading by remember { mutableStateOf(false) }
 
     Column(
@@ -145,7 +154,9 @@ fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
                 .background(AuthFieldBackground)
         ) {
             AuthTextField(
+                //Значение, которое отображает в текстовом поле
                 value = login,
+                //При изменении значения меняем то, что отображается
                 onValueChange = { login = it },
                 placeholder = "Логин"
             )
@@ -154,6 +165,7 @@ fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
                 value = password,
                 onValueChange = { password = it },
                 placeholder = "Пароль",
+                //Данный параметр заменяет символы в поле на *
                 isPassword = true
             )
         }
@@ -164,16 +176,20 @@ fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
             text = if (isLoading) "Вход..." else "Войти",
             enabled = !isLoading,
             onClick = {
+                //Проверка ошибок со стороны пользователя
                 if (login.isBlank() || password.isBlank()) {
+                    //Toast это специальные Андроид-уведомления, которые можно вызвать и передать туда определенный текст
                     Toast.makeText(context, "Заполните все поля!", Toast.LENGTH_SHORT).show()
                     return@AuthButton
                 }
                 scope.launch {
                     isLoading = true
                     try {
+                        //Обращение к серверу и ожидание ответа от него
                         val response: Response<AuthResponse> = RetrofitClient.authApi.login(login.lowercase().trim(), password)
                         if (response.isSuccessful) {
                             val data = response.body()
+                            //let проверяет, если слева от него не null, то выполняет код в {} (аналог if (x != null) {...})
                             data?.accessToken?.let {
                                 saveToken(context, it)
                                 Toast.makeText(context, "Вход выполнен успешно!", Toast.LENGTH_SHORT).show()
@@ -186,6 +202,7 @@ fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
                         }
                     } catch (e: Exception) {
                         Toast.makeText(context, "Ошибка соединения: ${e.message}", Toast.LENGTH_SHORT).show()
+                    //Если по какой-либо причине пользователь не прошел аутентификацию, то снова даем возможность нажать на кнопку
                     } finally {
                         isLoading = false
                     }
@@ -201,11 +218,13 @@ fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
             fontSize = 18.sp,
             fontWeight = FontWeight.Black,
             fontFamily = NunitoSansFamily,
+            //Добавляет возможность нажать на текст для перехода на экран регистрации
             modifier = Modifier.clickable { onSwitchToRegister() },
         )
     }
 }
 
+//Экран регистрации
 @Composable
 fun RegisterScreen(onSwitchToLogin: () -> Unit, onNavigateToChats: () -> Unit) {
     val context = LocalContext.current
@@ -294,6 +313,7 @@ fun RegisterScreen(onSwitchToLogin: () -> Unit, onNavigateToChats: () -> Unit) {
                             Toast.makeText(context, "Ошибка регистрации", Toast.LENGTH_SHORT).show()
                         }
                     } catch (e: Exception) {
+                        Log.d("Exc", e.message.toString())
                         Toast.makeText(context, "Ошибка соединения", Toast.LENGTH_SHORT).show()
                     } finally {
                         isLoading = false
@@ -315,6 +335,8 @@ fun RegisterScreen(onSwitchToLogin: () -> Unit, onNavigateToChats: () -> Unit) {
     }
 }
 
+//Шаблон поля ввода текста
+//Мало функционала, чисто дизайн
 @Composable
 fun AuthTextField(
     value: String,
@@ -362,6 +384,7 @@ fun AuthTextField(
     )
 }
 
+//Аналогично тому, что выше
 @Composable
 fun AuthButton(text: String, onClick: () -> Unit, enabled: Boolean = true) {
     Button(
@@ -387,36 +410,20 @@ fun AuthButton(text: String, onClick: () -> Unit, enabled: Boolean = true) {
     }
 }
 
+//Сохраняем токен в специальную память в андроиде, чтобы потом его при необходимости можно было достать
 private fun saveToken(context: Context, token: String) {
     val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
     prefs.edit { putString("access_token", token) }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun StartPreview() {
-    StartScreen({}, {})
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginPreview() {
-    LoginScreen({}, {})
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RegisterPreview() {
-    RegisterScreen({}, {})
-}
-
+//Кастомный разделитель, созданный с помощью Canvas
 @Composable
 fun DashedDivider(
+    modifier: Modifier = Modifier,
     color: Color = AuthTextColor.copy(alpha = 0.2f),
     thickness: Dp = 1.dp,
     dashWidth: Dp = 4.dp,
-    gapWidth: Dp = 4.dp,
-    modifier: Modifier = Modifier
+    gapWidth: Dp = 4.dp
 ) {
     val density = LocalDensity.current
     val strokeWidthPx = with(density) { thickness.toPx() }
@@ -435,4 +442,22 @@ fun DashedDivider(
             )
         )
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun StartPreview() {
+    StartScreen({}, {})
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LoginPreview() {
+    LoginScreen({}, {})
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RegisterPreview() {
+    RegisterScreen({}, {})
 }
