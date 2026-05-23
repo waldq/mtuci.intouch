@@ -11,8 +11,9 @@ import Navigation from '../Navigation/Navigation';
 const Timetable = () => {
     const [timetableData, setTimetableData] = useState(null);
     const [error, setError] = useState(null);
+    const [currentWeek, setCurrentWeek] = useState('');
 
-    const userGroup = "БПИ-2502";
+    const userGroup = "БПИ2502";
 
     const getCurrentWeek = () => {
         const now = new Date();
@@ -20,6 +21,18 @@ const Timetable = () => {
         const weekNumber = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
         return weekNumber % 2 === 0 ? 'чётная' : 'нечётная';
     };
+
+    useEffect(() => {
+        const updateWeek = () => {
+            setCurrentWeek(getCurrentWeek());
+        };
+        
+        updateWeek();
+        
+        const interval = setInterval(updateWeek, 3600000);
+        
+        return () => clearInterval(interval);
+    }, []);
 
     const loadSavedData = () => {
         const savedDay = localStorage.getItem('selectedDay');
@@ -35,7 +48,6 @@ const Timetable = () => {
 
     const savedData = loadSavedData();
 
-    const [currentWeek] = useState(getCurrentWeek());
     const [selectedDay, setSelectedDay] = useState(savedData.selectedDay);
     const [currentDate, setCurrentDate] = useState(savedData.currentDate);
     const [selectedDate, setSelectedDate] = useState(savedData.selectedDate);
@@ -86,7 +98,7 @@ const Timetable = () => {
     useEffect(() => {
         const month = currentDate.getMonth() + 1;
         fetchTimetable(userGroup, month);
-    }, [currentDate, userGroup]);
+    }, [currentDate]);
 
     const currentSchedule = timetableData?.[currentWeek]?.[selectedDay] || [];
     const selectedFullSchedule = timetableData?.[currentWeek]?.[selectedDay] || [];
