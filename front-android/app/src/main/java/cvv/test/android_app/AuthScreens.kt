@@ -1,15 +1,33 @@
 package cvv.test.android_app
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,48 +39,101 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation.Companion.None
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cvv.test.android_app.ui.theme.*
-import kotlinx.coroutines.launch
 import androidx.core.content.edit
-import androidx.compose.ui.text.input.VisualTransformation.Companion.None
+import cvv.test.android_app.api.AuthResponse
+import cvv.test.android_app.api.RegisterRequest
+import cvv.test.android_app.api.RetrofitClient
+import cvv.test.android_app.ui.theme.AuthFieldBackground
+import cvv.test.android_app.ui.theme.AuthTextColor
+import kotlinx.coroutines.launch
 import retrofit2.Response
 
+
+//Шрифт
+private val NunitoSansFamily = FontFamily(
+    Font(R.font.nunito_sans, FontWeight.Normal)
+)
+
+//Логика переключения между экранами
 @Composable
 fun AuthScreen() {
-    var currentScreen by remember { mutableStateOf("auth") }
-    var isRegisterMode by remember { mutableStateOf(false) }
+    var currentScreen by remember { mutableStateOf("start") }
 
-    if (currentScreen == "chats") {
-        ChatsScreen()
-    } else {
-        if (isRegisterMode) {
-            RegisterScreen(
-                onSwitchToLogin = { isRegisterMode = false },
-                onNavigateToChats = { currentScreen = "chats" }
-            )
-        } else {
-            LoginScreen(
-                onSwitchToRegister = { isRegisterMode = true },
-                onNavigateToChats = { currentScreen = "chats" }
-            )
-        }
+    when (currentScreen) {
+        "start" -> StartScreen(
+            //Лямбда-функции которые передаются в кнопки, для реализации логики при нажатии
+            //В данном случае переключение между экранами
+            onNavigateToLogin = { currentScreen = "login" },
+            onNavigateToRegister = { currentScreen = "register" }
+        )
+        "login" -> LoginScreen(
+            onSwitchToRegister = { currentScreen = "register" },
+            onNavigateToChats = { currentScreen = "chats" }
+        )
+        "register" -> RegisterScreen(
+            onSwitchToLogin = { currentScreen = "login" },
+            onNavigateToChats = { currentScreen = "chats" }
+        )
+        "chats" -> MainScreen()
     }
 }
 
+//Начальный экран с названием
+@Composable
+fun StartScreen(onNavigateToLogin: () -> Unit, onNavigateToRegister: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .paint(
+                painter = painterResource(id = R.drawable.background),
+                contentScale = ContentScale.Crop
+            )
+            .padding(horizontal = 40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "InTouch",
+            fontSize = 54.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = NunitoSansFamily,
+            color = AuthTextColor,
+            modifier = Modifier.padding(bottom = 80.dp)
+        )
+
+        AuthButton(
+            text = "Войти",
+            onClick = onNavigateToLogin
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        AuthButton(
+            text = "Создать аккаунт",
+            onClick = onNavigateToRegister
+        )
+    }
+}
+
+//Экран аутентификации
 @Composable
 fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var login by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    //state для выключения кнопки пока приложения ожидает ответ от сервера
     var isLoading by remember { mutableStateOf(false) }
 
     Column(
@@ -83,7 +154,9 @@ fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
                 .background(AuthFieldBackground)
         ) {
             AuthTextField(
+                //Значение, которое отображает в текстовом поле
                 value = login,
+                //При изменении значения меняем то, что отображается
                 onValueChange = { login = it },
                 placeholder = "Логин"
             )
@@ -92,6 +165,7 @@ fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
                 value = password,
                 onValueChange = { password = it },
                 placeholder = "Пароль",
+                //Данный параметр заменяет символы в поле на *
                 isPassword = true
             )
         }
@@ -102,16 +176,20 @@ fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
             text = if (isLoading) "Вход..." else "Войти",
             enabled = !isLoading,
             onClick = {
+                //Проверка ошибок со стороны пользователя
                 if (login.isBlank() || password.isBlank()) {
+                    //Toast это специальные Андроид-уведомления, которые можно вызвать и передать туда определенный текст
                     Toast.makeText(context, "Заполните все поля!", Toast.LENGTH_SHORT).show()
                     return@AuthButton
                 }
                 scope.launch {
                     isLoading = true
                     try {
+                        //Обращение к серверу и ожидание ответа от него
                         val response: Response<AuthResponse> = RetrofitClient.authApi.login(login.lowercase().trim(), password)
                         if (response.isSuccessful) {
                             val data = response.body()
+                            //let проверяет, если слева от него не null, то выполняет код в {} (аналог if (x != null) {...})
                             data?.accessToken?.let {
                                 saveToken(context, it)
                                 Toast.makeText(context, "Вход выполнен успешно!", Toast.LENGTH_SHORT).show()
@@ -124,6 +202,7 @@ fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
                         }
                     } catch (e: Exception) {
                         Toast.makeText(context, "Ошибка соединения: ${e.message}", Toast.LENGTH_SHORT).show()
+                    //Если по какой-либо причине пользователь не прошел аутентификацию, то снова даем возможность нажать на кнопку
                     } finally {
                         isLoading = false
                     }
@@ -136,13 +215,16 @@ fun LoginScreen(onSwitchToRegister: () -> Unit, onNavigateToChats: () -> Unit) {
         Text(
             text = "Нет аккаунта",
             color = AuthTextColor,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.clickable { onSwitchToRegister() }
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = NunitoSansFamily,
+            //Добавляет возможность нажать на текст для перехода на экран регистрации
+            modifier = Modifier.clickable { onSwitchToRegister() },
         )
     }
 }
 
+//Экран регистрации
 @Composable
 fun RegisterScreen(onSwitchToLogin: () -> Unit, onNavigateToChats: () -> Unit) {
     val context = LocalContext.current
@@ -231,6 +313,7 @@ fun RegisterScreen(onSwitchToLogin: () -> Unit, onNavigateToChats: () -> Unit) {
                             Toast.makeText(context, "Ошибка регистрации", Toast.LENGTH_SHORT).show()
                         }
                     } catch (e: Exception) {
+                        Log.d("Exc", e.message.toString())
                         Toast.makeText(context, "Ошибка соединения", Toast.LENGTH_SHORT).show()
                     } finally {
                         isLoading = false
@@ -244,13 +327,16 @@ fun RegisterScreen(onSwitchToLogin: () -> Unit, onNavigateToChats: () -> Unit) {
         Text(
             text = "Есть аккаунт?",
             color = AuthTextColor,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = NunitoSansFamily,
             modifier = Modifier.clickable { onSwitchToLogin() }
         )
     }
 }
 
+//Шаблон поля ввода текста
+//Мало функционала, чисто дизайн
 @Composable
 fun AuthTextField(
     value: String,
@@ -268,7 +354,8 @@ fun AuthTextField(
                     textAlign = TextAlign.Center,
                     color = AuthTextColor.copy(alpha = 0.7f),
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Black,
+                    fontFamily = NunitoSansFamily,
                 )
             }
         },
@@ -288,7 +375,8 @@ fun AuthTextField(
             textAlign = TextAlign.Center,
             color = AuthTextColor,
             fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Black,
+            fontFamily = NunitoSansFamily
         ),
         visualTransformation = if (isPassword) PasswordVisualTransformation() else None,
         keyboardOptions = if (isPassword) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
@@ -296,6 +384,7 @@ fun AuthTextField(
     )
 }
 
+//Аналогично тому, что выше
 @Composable
 fun AuthButton(text: String, onClick: () -> Unit, enabled: Boolean = true) {
     Button(
@@ -315,35 +404,26 @@ fun AuthButton(text: String, onClick: () -> Unit, enabled: Boolean = true) {
         Text(
             text = text,
             fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Black,
+            fontFamily = NunitoSansFamily
         )
     }
 }
 
+//Сохраняем токен в специальную память в андроиде, чтобы потом его при необходимости можно было достать
 private fun saveToken(context: Context, token: String) {
     val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
     prefs.edit { putString("access_token", token) }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun LoginPreview() {
-    LoginScreen({}, {})
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RegisterPreview() {
-    RegisterScreen({}, {})
-}
-
+//Кастомный разделитель, созданный с помощью Canvas
 @Composable
 fun DashedDivider(
+    modifier: Modifier = Modifier,
     color: Color = AuthTextColor.copy(alpha = 0.2f),
     thickness: Dp = 1.dp,
     dashWidth: Dp = 4.dp,
-    gapWidth: Dp = 4.dp,
-    modifier: Modifier = Modifier
+    gapWidth: Dp = 4.dp
 ) {
     val density = LocalDensity.current
     val strokeWidthPx = with(density) { thickness.toPx() }
@@ -362,4 +442,22 @@ fun DashedDivider(
             )
         )
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun StartPreview() {
+    StartScreen({}, {})
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LoginPreview() {
+    LoginScreen({}, {})
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RegisterPreview() {
+    RegisterScreen({}, {})
 }
