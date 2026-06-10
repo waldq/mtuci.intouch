@@ -71,3 +71,18 @@ class UserPublic(Base):
         Index('idx_users_username_prefix', 'username', postgresql_ops={'username': 'text_pattern_ops'}),
         Index('idx_users_tag_prefix', 'tag', postgresql_ops={'tag': 'text_pattern_ops'})
     )
+
+class UserKeys(Base):
+    __tablename__ = 'userkeys'
+
+    user_id: Mapped[str] = mapped_column(
+        SnowflakeString, 
+        ForeignKey('user.id'), 
+        primary_key=True,
+        index=True
+        )
+    key: Mapped[bytes] = mapped_column(
+        LargeBinary,
+        unique=True,
+        nullable=True
+    )

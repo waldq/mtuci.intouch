@@ -11,6 +11,7 @@ from app.api.chats.crud import (create_group_chat,
                                 read_user_chats)
 from app.api.chats.schemas import ChatGroupCreate, ChatDirectCreate, ChatUpdate
 from app.db.database import get_session
+from app.api.users.crud import get_user_base_by_id
 
 
 router = APIRouter(prefix='/chats', tags=['chats'])
@@ -41,6 +42,7 @@ async def create_chat_direct(chat_data: ChatDirectCreate,
                              current_user = Depends(get_current_user), 
                              session: AsyncSession = Depends(get_session)):
     current_user_id = current_user.get('user_id')
+    member_data = await get_user_base_by_id(member_id, session)
     try:
         new_chat = await create_direct_chat(
             chat_data=chat_data,

@@ -5,20 +5,21 @@ import secrets
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.ciphers import aead
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, hmac
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from cryptography.hazmat.primitives.constant_time import bytes_eq
 from cryptography.hazmat.backends.openssl import backend
 
 
+from app.api.auth.crud import update_user_private_key
 from app.api.socket.server import sio
 from app.api.socket.schemas import (FHMQVStep1In, 
                                     FHMQVStep1Out,
                                     FHMQVStep2In,
                                     FHMQVStep2Encrypt,
                                     FHMQVStep2Out,
-#                                     FHMQVStep3In
+                                    FHMQVStep3In
                                     )
 from app.redis_client import (RedisClient, 
                               store_client_public_static_key,
@@ -27,7 +28,9 @@ from app.redis_client import (RedisClient,
                               store_server_public_static_key,
                               store_server_private_ephem_key,
                               store_server_public_ephem_key,
-                              store_handshake_first_key)
+                              store_handshake_first_key,
+                              store_k1_key,
+                              store_sigma_b_bytes_hex)
 from app.core.config import settings
 from app.db.database import get_session
 from app.api.users.crud import update_user_pub_key
@@ -39,6 +42,8 @@ from app.api.users.crud import update_user_pub_key
 async def step_1_start_handler(sid,
                          data: FHMQVStep1In,
                          ):
+    if not isinstance(data, FHMQVStep1In):
+        await sio.emit('failed_handshake', {'result': 'Failure.'}, to=sid)
     client_public_static_key_bytes = bytes.fromhex(data.client_public_static_key_bytes_hex)
     try:
         redis_client = await RedisClient.get_client()
@@ -140,6 +145,8 @@ async def step_1_start_handler(sid,
 # использованное для шифрования. В качестве assiciated_data используется sid, общий как для клиента, так и для сервера.
 @sio.on('fhmqv_step2_start')
 async def step_2_start_handler(sid, data: FHMQVStep2In):
+    if not isinstance(data, FHMQVStep2In):
+        await sio.emit('failed_handshake', {'result': 'Failure.'}, to=sid)
     try:
         redis_client = await RedisClient.get_client()
 
@@ -149,14 +156,14 @@ async def step_2_start_handler(sid, data: FHMQVStep2In):
         # должно быть более чем достаточно для рукопожатия.
         handshake_start_key_bytes_hex = await redis_client.get(f'handshake:start:key:{sid}')
 
-        server_private_static_key_hex = await redis_client.get(f'handshake:server:private:static:{sid}')
+        server_private_static_key_bytes_hex = await redis_client.get(f'handshake:server:private:static:{sid}')
         server_public_static_key_bytes_hex = await redis_client.get(f'handshake:server:public:static:{sid}')
 
         client_public_static_key_bytes_hex = await redis_client.get(f'handshake:client:public:static:{sid}')
         
         if not all([
                 handshake_start_key_bytes_hex, 
-                server_private_static_key_hex,
+                server_private_static_key_bytes_hex,
                 server_public_static_key_bytes_hex, 
                 client_public_static_key_bytes_hex
                 ]):
@@ -256,20 +263,6 @@ async def step_2_start_handler(sid, data: FHMQVStep2In):
             server_public_ephem_key_bytes_hex=server_public_ephem_key_bytes.hex()
         )
 
-        server_nonce = secrets.randbits(96).to_bytes()
-
-        aes_payload = FHMQVStep2Encrypt(
-            server_public_static_key_hash_bytes_hex=server_public_static_key_hash_bytes.hex(),
-            client_public_static_key_hash_bytes_hex=client_public_static_key_hash_bytes.hex(),
-            server_public_ephem_key_bytes_hex=server_public_ephem_key_bytes.hex()
-        ).model_dump()
-        aes_payload_dumped = json.dumps(aes_payload).encode('utf-8')
-
-        aes_encrypted_keys_data = aesgcm.encrypt(
-            server_nonce,
-            aes_payload_dumped,
-            sid
-        )
 
         d_e_digest = hashes.Hash(hashes.SHA3_256())
         d_e_digest.update(client_public_ephem_key_bytes)
@@ -282,41 +275,231 @@ async def step_2_start_handler(sid, data: FHMQVStep2In):
         e = int.from_bytes(d_e[16:], 'big')
 
         y = raw_server_private_ephem_key_number
-        b = int(server_private_static_key_hex, 16)
+        b = int(server_private_static_key_bytes_hex, 16)
 
-        # bn_order = backend._lib.BN_new()
-        # bn_y = backend._lib.BN_new()
-        # bn_e = backend._lib.BN_new()
-        # bn_b = backend._lib.BN_new()
-        # bn_d = backend._lib.BN_new()
+        group_order = int(0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551, 16)
 
-        # bn_eb = backend._lib.BN_new()
-        # bn_s_B = backend._lib.BN_new()
-        # bn_k1 = backend._lib.BN_new()
+        bn_order = backend._lib.BN_new()
+        bn_y = backend._lib.BN_new()
+        bn_e = backend._lib.BN_new()
+        bn_b = backend._lib.BN_new()
+        bn_d = backend._lib.BN_new()
 
-        # bn_ctx = backend._lib.BN_CTX_new()
+        bn_eb = backend._lib.BN_new()
+        bn_s_B = backend._lib.BN_new()
+        bn_k1 = backend._lib.BN_new()
+        bn_k2 = backend._lib.BN_new()
 
-        # try:
+        bn_ctx = backend._lib.BN_CTX_new()
 
-        # except:
-        #     raise ValueError
+        try:
+            for val, bn_obj in [(group_order, bn_order), (y, bn_y), (e, bn_e), (b, bn_b), (d, bn_d)]:
+                val_bytes = val.to_bytes(length=32, byteorder='big')
+                backend._lib.BN_bin2bn(val_bytes, len(val_bytes), bn_obj)
+            backend._lib.BN_mod_mul(bn_eb, bn_e, bn_b, bn_order, bn_ctx)
 
-        # # TODO
+            backend._lib.BN_mod_add(bn_s_B, bn_y, bn_eb, bn_order, bn_ctx)
 
-        # NID_X9_62_prime256v1 = 415
-        # group = backend._lib.EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1)
+            backend._lib.BN_copy(bn_k1, bn_s_B)
+
+            backend._lib.BN_mod_mul(bn_k2, bn_s_B, bn_d, bn_order, bn_ctx)
+
+            NID_X9_62_prime256v1 = 415
+            group = backend._lib.EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1)
+
+            pt_X = backend._lib.EC_POINT_new(group)
+            pt_A = backend._lib.EC_POINT_new(group)
+            comp1 = backend._lib.EC_POINT_new(group)
+            comp2 = backend._lib.EC_POINT_new(group)
+            sigma_point = backend._lib.EC_POINT_new(group)
+            try:
+                backend._lib.EC_POINT_oct2point(group, pt_X, client_public_ephem_key_bytes, len(client_public_ephem_key_bytes), bn_ctx)
+                backend._lib.EC_POINT_oct2point(group, pt_A, client_public_static_key_bytes, len(client_public_static_key_bytes), bn_ctx)
+
+                backend._lib.EC_POINT_mul(group, comp1, backend._ffi.NULL, pt_X, bn_k1, bn_ctx)
+                backend._lib.EC_POINT_mul(group, comp2, backend._ffi.NULL, pt_A, bn_k2, bn_ctx)
+
+                backend._lib.EC_POINT_add(group, sigma_point, comp1, comp2, bn_ctx)
 
 
+                if backend._lib.EC_POINT_is_at_infinity(group, sigma_point) == 1:
+                    raise ValueError("Вычисленная точка общего секрета находится в бесконечности.")
+                
+                bn_x_coord = backend._lib.BN_new()
+                try:
+                    backend._lib.EC_POINT_get_affine_coordinates(group, sigma_point, bn_x_coord, backend._ffi.NULL, bn_ctx)
+
+                    num_bytes = backend._lib.BN_num_bytes(bn_x_coord)
+                    buf = backend._ffi.new("unsigned char[]", num_bytes)
+                    backend._lib.BN_bn2bin(bn_x_coord, buf)
+                    sigma_b_bytes = backend._ffi.buffer(buf, num_bytes)[:]
+                finally:
+                    backend._lib.BN_clear_free(bn_x_coord)
+            
+            finally:
+                backend._lib.EC_POINT_free(pt_X)
+                backend._lib.EC_POINT_free(pt_A)
+                backend._lib.EC_POINT_free(comp1)
+                backend._lib.EC_POINT_free(comp2)
+                backend._lib.EC_POINT_free(sigma_point)
+                backend._lib.EC_GROUP_free(group)
+
+        finally:
+            backend._lib.BN_clear_free(bn_y)
+            backend._lib.BN_clear_free(bn_e)
+            backend._lib.BN_clear_free(bn_b)
+            backend._lib.BN_clear_free(bn_d)
+            backend._lib.BN_clear_free(bn_eb)
+            backend._lib.BN_clear_free(bn_s_B)
+            backend._lib.BN_clear_free(bn_k1)
+            backend._lib.BN_clear_free(bn_k2)
+            backend._lib.BN_clear_free(bn_order)
+            backend._lib.BN_CTX_free(bn_ctx)
+        
+        await store_sigma_b_bytes_hex(sigma_b_bytes.hex())
+
+        kdf_context = (
+            client_public_static_key_bytes +
+            server_public_static_key_bytes +
+            client_public_ephem_key_bytes +
+            server_public_ephem_key_bytes
+        )
+
+        k1_key_bytes = HKDF(
+            algorithm=hashes.SHA3_256(),
+            length=32,
+            salt=None,
+            info=kdf_context
+        ).derive(sigma_b_bytes)
+
+        await store_k1_key(
+            redis_client,
+            sid,
+            k1_key_bytes.hex()
+        )
+
+        mac_context = server_public_static_key_bytes + server_public_ephem_key_bytes
+        t_b_bytes_digest = hmac.HMAC(k1_key_bytes, hashes.SHA3_256())
+        t_b_bytes_digest.update(mac_context)
+        t_b_bytes = t_b_bytes_digest.finalize()
+
+        server_nonce = secrets.randbits(96).to_bytes()
+
+        aes_payload = FHMQVStep2Encrypt(
+            server_public_static_key_hash_bytes_hex=server_public_static_key_hash_bytes.hex(),
+            client_public_static_key_hash_bytes_hex=client_public_static_key_hash_bytes.hex(),
+            server_public_ephem_key_bytes_hex=server_public_ephem_key_bytes.hex(),
+            t_b_bytes_hex=t_b_bytes.hex()
+        ).model_dump()
+        aes_payload_dumped = json.dumps(aes_payload).encode('utf-8')
+
+        aes_encrypted_keys_and_tb_data_bytes = aesgcm.encrypt(
+            server_nonce,
+            aes_payload_dumped,
+            sid
+        )
 
         response_model = FHMQVStep2Out(
             server_public_static_key_hash_bytes.hex(),
             client_public_static_key_hash_bytes.hex(),
             server_public_ephem_key_bytes.hex(),
-            aes_encrypted_keys_data,
+            t_b_bytes.hex(),
+            aes_encrypted_keys_and_tb_data_bytes.hex(),
             server_nonce
             ).model_dump()
 
         sio.emit('fhmqv_step2_end', response_model, to=sid)
 
     except:
-        ValueError('Что-то пошло не так.')
+        raise ValueError('Что-то пошло не так.')
+    
+    
+@sio.on('fhmqv_step3_start')
+async def step_3_start_handler(sid, data: FHMQVStep3In):
+    if not isinstance(data, FHMQVStep3In):
+        await sio.emit('failed_handshake', {'result': 'Failure.'}, to=sid)
+    try:
+        user_data = sio.get_session(sid)
+        user_id = user_data.get('user_id')
+
+        redis_client = await RedisClient.get_client()
+
+        handshake_start_key_hex = await redis_client.get(f'handshake:start:key:{sid}')
+
+        client_public_static_key_bytes_hex = await redis_client.get(f'handshake:client:public:static:key:{sid}')
+        client_public_ephem_key_bytes_hex = await redis_client.get(f'handshake:client:public:ephem:key:{sid}')
+
+        server_public_static_key_bytes_hex = await redis_client.get(f'handshake:server:public:static:{sid}')
+        server_public_ephem_key_bytes_hex = await redis_client.get(f'handshake:server:public:ephem:{sid}')
+
+        k1_key_bytes_hex =await redis_client.get(f'handshake:k1:{sid}')
+        sigma_b_bytes_hex = await redis_client.get(f'handshake:sigmab:{sid}')
+
+        if not all([
+            handshake_start_key_hex,
+            client_public_static_key_bytes_hex,
+            client_public_ephem_key_bytes_hex,
+            server_public_static_key_bytes_hex,
+            server_public_ephem_key_bytes_hex,
+            k1_key_bytes_hex,
+            sigma_b_bytes_hex
+        ]):
+            raise ValueError('Сессия истекла. Рукопожатие длилось дольше 30 секунд, есть вероятность незащищённого соединения.')
+
+        handshake_start_key = bytes.fromhex(handshake_start_key_hex)
+
+        client_public_static_key_bytes = bytes.fromhex(client_public_static_key_bytes_hex)
+        client_public_ephem_key_bytes = bytes.fromhex(client_public_ephem_key_bytes_hex)
+
+        server_public_static_key_bytes = bytes.fromhex(client_public_static_key_bytes_hex)
+        server_public_ephem_key_bytes = bytes.fromhex(client_public_ephem_key_bytes_hex)
+
+        k1_key_bytes = bytes.fromhex(k1_key_bytes_hex)
+        sigma_b_bytes = bytes.fromhex(sigma_b_bytes_hex)
+
+        mac_context = client_public_static_key_bytes + client_public_ephem_key_bytes
+        t_a_server_bytes_digest = hmac.HMAC(k1_key_bytes, hashes.SHA3_256())
+        t_a_server_bytes_digest.update(mac_context)
+        t_a_server_bytes = t_a_server_bytes_digest.finalize()
+
+        aesgcm = aead.AESGCM(handshake_start_key)
+
+        nonce = bytes.fromhex(data.nonce)
+        associated_data = sid
+
+        aes_encrypted_ta_bytes = bytes.fromhex(data.aes_encrypted_ta_bytes_hex)
+        encrypted_ta_bytes = aesgcm.decrypt(nonce=nonce, data=aes_encrypted_ta_bytes, associated_data=associated_data)
+
+        decoded_encrypted_data_string = encrypted_ta_bytes.decode('utf-8')
+        decoded_encrypted_data_dict = json.loads(decoded_encrypted_data_string)
+
+        encrypted_t_a_bytes_hex = decoded_encrypted_data_dict.get('t_a_bytes_hex')
+        deciphered_t_a_bytes_hex = bytes.fromhex(encrypted_t_a_bytes_hex)
+
+        if not (bytes_eq(t_a_server_bytes, deciphered_t_a_bytes_hex),
+                bytes_eq(deciphered_t_a_bytes_hex, data.t_a_bytes_hex)):
+            raise ValueError('Данные не совпадают. Есть вероятность незащищённого соединения.')
+
+        kdf_context = (
+            sigma_b_bytes,
+            k1_key_bytes,
+            client_public_static_key_bytes +
+            server_public_static_key_bytes +
+            client_public_ephem_key_bytes +
+            server_public_ephem_key_bytes
+        )
+
+        k2_key_bytes = HKDF(
+            algorithm=hashes.SHA3_256(),
+            length=32,
+            salt=None,
+            info=kdf_context
+        ).derive(k1_key_bytes)
+
+
+        result = await update_user_private_key(user_id, k2_key_bytes)
+        if result.get('result') == 'Success.':
+            sio.emit('fhmqv_end', {'result': 'Success.'}, to=sid)
+
+    except:
+        raise ValueError('Что-то пошло не так.')

@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.api.auth.schemas import UserCreate, UserOut
-from app.db.models.user import User, UserAuth, UserPublic
+from app.db.models.user import User, UserAuth, UserPublic, UserKeys
 
 # Функция создания пользователя в бд.
 async def create_user(user: UserCreate, hashed_password: str, session: AsyncSession):
@@ -36,4 +36,17 @@ async def create_user(user: UserCreate, hashed_password: str, session: AsyncSess
         raise ValueError('Пользователь с такими данными уже существует.')
 
     except ValueError as e:  # Возвращаем ошибки в непредвиденных случаях.
+        raise e
+    
+async def update_user_private_key(user_id: int, private_key: bytes, session: AsyncSession):
+    try:
+        new_user_key = UserKeys(user_id=user_id, key=private_key)
+        session.add(new_user_key)
+        await session.commit()
+        return {'result': 'Success.'}
+
+    except IntegrityError:
+        await session.rollback()
+        raise ValueError('Сгенерировался существующий ключ. Регистрация не удалась.')
+    except ValueError as e:
         raise e

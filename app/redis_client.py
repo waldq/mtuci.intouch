@@ -60,6 +60,12 @@ def get_server_public_ephem_key(session_id: str) -> str:
 def get_handshake_start_key(session_id: str) -> str:
     return f"handshake:start:key:{session_id}"
 
+def get_k1_key(session_id: str) -> str:
+    return f"handshake:k1:{session_id}"
+
+def get_sigma_b_bytes_hex(session_id: str) -> str:
+    return f"handshake:sigmab:{session_id}"
+
 async def store_tokens(
     redis_client: redis.Redis,
     user_id: str,
@@ -171,6 +177,30 @@ async def store_handshake_first_key(
         handshake_key,
         30,
         handshake_first_key_bytes_hex
+    )
+
+async def store_k1_key(
+    redis_client: redis.Redis,
+    session_id: str,
+    k1_bytes_hex: str    
+    ):
+    k1_key = get_k1_key(session_id)
+    await redis_client.setex(
+        k1_key,
+        30,
+        k1_bytes_hex
+    )
+
+async def store_sigma_b_bytes_hex(
+    redis_client: redis.Redis,
+    session_id: str,
+    sigma_b_bytes_hex: str    
+    ):
+    sigma_b = get_sigma_b_bytes_hex(session_id)
+    await redis_client.setex(
+        sigma_b,
+        30,
+        sigma_b_bytes_hex
     )
 
 async def get_refresh_token_data(

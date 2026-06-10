@@ -3,12 +3,12 @@ from sqlalchemy import select, update, or_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.user import User, UserAuth, UserPublic
+from app.db.models.user import UserAuth, UserPublic, User
 from app.db.database import get_session
 from app.api.users.schemas import UserUpdatePublic
 
 # Функция создания пользователя в бд.
-async def update_user(user_to_update: UserUpdatePublic, user: User, session: AsyncSession):
+async def update_user(user_to_update: UserUpdatePublic, user: UserPublic, session: AsyncSession):
     user_data = user_to_update.model_dump(exclude_unset=True)
     for key, value in user_data.items():
         setattr(user, key, value)

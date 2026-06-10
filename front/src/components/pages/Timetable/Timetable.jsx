@@ -162,7 +162,7 @@ const Timetable = () => {
     };
 
     useEffect(() => {
-        const month = currentDate.getMonth() + 1;
+        const month = currentDate.getMonth();
         fetchTimetable(userGroup, month);
     }, [currentDate]);
 
