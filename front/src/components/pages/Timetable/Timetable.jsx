@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from "react-helmet-async";
 import "./timetable.css";
 import {
     Calendar as CalendarIcon,
@@ -243,100 +244,107 @@ const Timetable = () => {
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
     return (
-        <div className="timetable-container">
-            <Navigation />
+        <>
+            <Helmet>
+                <title>Расписание</title>
+                <meta name="description" content="Расписание занятий" />
+            </Helmet>
+            
+            <div className="timetable-container">
+                <Navigation />
 
-            <aside className="timetable-sidebar">
-                <div className="timetable-header">
-                    <div className="header-top">
-                        <h2>Расписание</h2>
-                    </div>
-                    <div className="week-info">
-                        <span className="week-number">Неделя: {currentWeek}</span>
-                        {error && <span className="error">{error}</span>}
-                    </div>
-                </div>
-
-                <div className="days-tabs">
-                    {days.map((day, index) => (
-                        <button
-                            key={index}
-                            className={`day-tab ${selectedDay === index ? 'active' : ''}`}
-                            onClick={() => setSelectedDay(index)}
-                        >
-                            {day}
-                        </button>
-                    ))}
-                </div>
-
-                <div className="schedule-list">
-                    {currentSchedule.length > 0 ? (
-                        currentSchedule.map((lesson, idx) => (
-                            <div key={idx} className="lesson-card">
-                                <div className="lesson-time">
-                                    <ClockIcon size={16} />
-                                    <span>{lesson.time}</span>
-                                </div>
-                                <div className="lesson-subject">{lesson.subject}</div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="empty-schedule">
-                            <p>В этот день пар нет</p>
+                <aside className="timetable-sidebar">
+                    <div className="timetable-header">
+                        <div className="header-top">
+                            <h2>Расписание</h2>
                         </div>
-                    )}
-                </div>
-            </aside>
-
-            <aside className="timetable-info-sidebar">
-                <div className="right-panel-content">
-                    <div className="calendar-container">
-                        <div className="calendar-large">
-                            <div className="calendar-month-large">
-                                <button onClick={() => changeMonth(-1)} className="month-nav-large">
-                                    <ChevronLeftIcon size={20} />
-                                </button>
-                                <span className="month-title-large">{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
-                                <button onClick={() => changeMonth(1)} className="month-nav-large">
-                                    <ChevronRightIcon size={20} />
-                                </button>
-                            </div>
-                            <div className="calendar-weekdays-large">
-                                {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
-                                    <span key={d} className="weekday-large">{d}</span>
-                                ))}
-                            </div>
-                            <div className="calendar-days-large">
-                                {renderCalendar()}
-                            </div>
+                        <div className="week-info">
+                            <span className="week-number">Неделя: {currentWeek}</span>
+                            {error && <span className="error">{error}</span>}
                         </div>
                     </div>
 
-                    <div className="detail-container">
-                        <div className="detail-header">
-                            <h4>{selectedDayName}</h4>
-                        </div>
-                        <div className="detail-list">
-                            {selectedFullSchedule.length > 0 ? (
-                                selectedFullSchedule.map((lesson, idx) => (
-                                    <div key={idx} className="detail-card">
-                                        <div className="detail-time">{lesson.time}</div>
-                                        <div className="detail-subject">{lesson.subject}</div>
-                                        <div className={`detail-type ${getTypeColor(lesson.type)}`}>{lesson.type}</div>
-                                        <div className="detail-room">{lesson.room}</div>
-                                        <div className="detail-teacher">{lesson.teacher}</div>
+                    <div className="days-tabs">
+                        {days.map((day, index) => (
+                            <button
+                                key={index}
+                                className={`day-tab ${selectedDay === index ? 'active' : ''}`}
+                                onClick={() => setSelectedDay(index)}
+                            >
+                                {day}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="schedule-list">
+                        {currentSchedule.length > 0 ? (
+                            currentSchedule.map((lesson, idx) => (
+                                <div key={idx} className="lesson-card">
+                                    <div className="lesson-time">
+                                        <ClockIcon size={16} />
+                                        <span>{lesson.time}</span>
                                     </div>
-                                ))
-                            ) : (
-                                <div className="empty-detail">
-                                    <p>В этот день пар нет</p>
+                                    <div className="lesson-subject">{lesson.subject}</div>
                                 </div>
-                            )}
+                            ))
+                        ) : (
+                            <div className="empty-schedule">
+                                <p>В этот день пар нет</p>
+                            </div>
+                        )}
+                    </div>
+                </aside>
+
+                <aside className="timetable-info-sidebar">
+                    <div className="right-panel-content">
+                        <div className="calendar-container">
+                            <div className="calendar-large">
+                                <div className="calendar-month-large">
+                                    <button onClick={() => changeMonth(-1)} className="month-nav-large">
+                                        <ChevronLeftIcon size={20} />
+                                    </button>
+                                    <span className="month-title-large">{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
+                                    <button onClick={() => changeMonth(1)} className="month-nav-large">
+                                        <ChevronRightIcon size={20} />
+                                    </button>
+                                </div>
+                                <div className="calendar-weekdays-large">
+                                    {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
+                                        <span key={d} className="weekday-large">{d}</span>
+                                    ))}
+                                </div>
+                                <div className="calendar-days-large">
+                                    {renderCalendar()}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="detail-container">
+                            <div className="detail-header">
+                                <h4>{selectedDayName}</h4>
+                            </div>
+                            <div className="detail-list">
+                                {selectedFullSchedule.length > 0 ? (
+                                    selectedFullSchedule.map((lesson, idx) => (
+                                        <div key={idx} className="detail-card">
+                                            <div className="detail-time">{lesson.time}</div>
+                                            <div className="detail-subject">{lesson.subject}</div>
+                                            <div className={`detail-type ${getTypeColor(lesson.type)}`}>{lesson.type}</div>
+                                            <div className="detail-room">{lesson.room}</div>
+                                            <div className="detail-teacher">{lesson.teacher}</div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="empty-detail">
+                                        <p>В этот день пар нет</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            </aside>
-        </div>
+                </aside>
+            </div>
+        </>
     );
 };
 

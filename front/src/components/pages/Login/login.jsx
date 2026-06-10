@@ -1,8 +1,7 @@
-import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import './login.css';
-
 
 const Login = () => {
     const navigate = useNavigate();
@@ -28,6 +27,10 @@ const Login = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
+        if (touched[name]) {
+            const error = validateField(name, value);
+            setErrors({ ...errors, [name]: error });
+        }
     };
 
     const handleBlur = (e) => {
@@ -44,7 +47,20 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        console.log('URL:', `${process.env.REACT_APP_API_URL}/auth/login`);
+        const loginError = validateField('login', formData.login);
+        const passwordError = validateField('password', formData.password);
+        
+        if (loginError || passwordError) {
+            setErrors({
+                login: loginError,
+                password: passwordError
+            });
+            setTouched({
+                login: true,
+                password: true
+            });
+            return;
+        }
 
         try {
             const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login`, {
@@ -62,8 +78,7 @@ const Login = () => {
                 const data = await response.json();
                 console.log('Вход успешен:', data);
                 localStorage.setItem('access_token', data.access_token);
-                alert('Вход выполнен успешно!');
-                navigate('/');
+                navigate('/chats');
             } else if (response.status === 401) {
                 alert('Неверный логин или пароль');
             } else {
@@ -97,7 +112,6 @@ const Login = () => {
                                     value={formData.login}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
-                                    required
                                 />
                                 {touched.login && errors.login && (
                                     <span className="log-error-message">{errors.login}</span>
@@ -113,7 +127,6 @@ const Login = () => {
                                     value={formData.password}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
-                                    required
                                 />
                                 {touched.password && errors.password && (
                                     <span className="log-error-message">{errors.password}</span>

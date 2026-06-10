@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from "react-helmet-async";
 import { useNavigate } from 'react-router-dom';
 import "./dashboard.css";
 import {
@@ -14,16 +15,23 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="dashboard-container">
-            <Navigation />  
+        <>
+            <Helmet>
+                <title>Панель навигации</title>
+                <meta name="description" content="Панель управления" />
+            </Helmet>
+            
+            <div className="dashboard-container">
+                <Navigation />  
 
-            <main className="dashboard-main">
-                <div className="section-bar" onClick={handleClick}>
-                    <span className="section-bar-text">Расписание</span>
-                    <CalendarIcon className="calendar-icon" />
-                </div>
-            </main>
-        </div>
+                <main className="dashboard-main">
+                    <div className="section-bar" onClick={handleClick}>
+                        <span className="section-bar-text">Расписание</span>
+                        <CalendarIcon className="calendar-icon" />
+                    </div>
+                </main>
+            </div>
+        </>
     );
 };
 
