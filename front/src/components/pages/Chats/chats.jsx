@@ -1,6 +1,4 @@
-import { Helmet } from "react-helmet";
 import React, { useState, useRef, useEffect, useCallback} from 'react';
-import { useNavigate } from "react-router-dom";
 import Navigation from '../Navigation/Navigation';
 import "./chats.css";
 import { useSocket } from "./useSocket";
