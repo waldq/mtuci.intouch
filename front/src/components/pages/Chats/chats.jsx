@@ -5,12 +5,12 @@ import Navigation from '../Navigation/Navigation';
 import "./chats.css";
 import { useSocket } from "./useSocket";
 import{
-    Settings as SettingsIcon,
-    Edit3 as EditIcon,
-    Video as VideoIcon,
+    //Settings as SettingsIcon,
+    //Edit3 as EditIcon,
+    //Video as VideoIcon,
     Smile as EmojiIcon,
-    Mic as MicIcon,
-    Paperclip as PaperclipIcon,
+    //Mic as MicIcon,
+    //Paperclip as PaperclipIcon,
     Send as SendIcon,
     Search as SearchIcon
 } from 'lucide-react';
@@ -208,7 +208,6 @@ const Chats = () => {
           </div>
         </div>
         <div className="header-actions">
-          <VideoIcon />
         </div>
       </header>
 
@@ -266,8 +265,6 @@ const Chats = () => {
             >
               <EmojiIcon className={showEmojiPicker ? 'icon-active' : 'icon-muted'}/>
             </button>
-            <MicIcon />
-            <PaperclipIcon />
             <SendIcon className="send-btn"
             onClick={handleSendMessage}
             style={{cursor: 'pointer'}} />
@@ -279,7 +276,6 @@ const Chats = () => {
     <aside className="chats-info-sidebar">
       <div className="info-header">
         <h3>Новое</h3>
-        <SettingsIcon className="icon-muted" />
       </div>
       
       <div className="stories-row">

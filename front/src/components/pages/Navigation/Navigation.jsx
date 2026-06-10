@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import {
     Calendar as CalendarIcon,
     LayoutGrid as GridIcon,
-    Phone as CallIcon,
+    //Phone as CallIcon,
     PlusCircle as PlusCircleIcon,
-    Bell,
-    Settings as SettingsIcon,
+    //Bell,
+    //Settings as SettingsIcon,
     Blocks
 } from 'lucide-react';
 
@@ -29,14 +29,11 @@ const Navigation = () => {
                 <div onClick={goToTimetable} className="nav-item">
                     <CalendarIcon />
                 </div>
-                <CallIcon />
                 <div onClick={goToChats} className="nav-item">
                     <PlusCircleIcon />
                 </div>
             </div>
             <div className="nav-footer">
-                <Bell />
-                <SettingsIcon />
                 <div className="user-avatar-placeholder"></div>
             </div>
         </nav>
