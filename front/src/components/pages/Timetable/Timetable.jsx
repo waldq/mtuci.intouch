@@ -12,19 +12,44 @@ const Timetable = () => {
     const [timetableData, setTimetableData] = useState(null);
     const [error, setError] = useState(null);
     const [currentWeek, setCurrentWeek] = useState('');
+    const [isInitialized, setIsInitialized] = useState(false);
 
     const userGroup = "БПИ2502";
 
-    const getCurrentWeek = () => {
+    const getWeekNumber = (date) => {
+        const currentDate = new Date(date);
+        const dayOfWeek = currentDate.getDay();
+        const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        
+        const monday = new Date(currentDate);
+        monday.setDate(currentDate.getDate() - mondayOffset);
+        monday.setHours(0, 0, 0, 0);
+        
+        const firstMonday = new Date(currentDate.getFullYear(), 0, 1);
+        const firstDayOfWeek = firstMonday.getDay();
+        const firstMondayOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+        firstMonday.setDate(1 - firstMondayOffset);
+        
+        const diffDays = Math.floor((monday - firstMonday) / (1000 * 60 * 60 * 24));
+        const weekNumber = Math.floor(diffDays / 7) + 1;
+        
+        return weekNumber;
+    };
+
+    const getCurrentWeekParity = () => {
         const now = new Date();
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        const weekNumber = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+        const weekNumber = getWeekNumber(now);
+        return weekNumber % 2 === 0 ? 'чётная' : 'нечётная';
+    };
+
+    const getWeekParityForDate = (date) => {
+        const weekNumber = getWeekNumber(date);
         return weekNumber % 2 === 0 ? 'чётная' : 'нечётная';
     };
 
     useEffect(() => {
         const updateWeek = () => {
-            setCurrentWeek(getCurrentWeek());
+            setCurrentWeek(getCurrentWeekParity());
         };
         
         updateWeek();
@@ -34,16 +59,44 @@ const Timetable = () => {
         return () => clearInterval(interval);
     }, []);
 
+    const getTodayDate = () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return today;
+    };
+
+    const getDayIndex = (date) => {
+        const dayOfWeek = date.getDay();
+        return dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    };
+
     const loadSavedData = () => {
         const savedDay = localStorage.getItem('selectedDay');
         const savedDate = localStorage.getItem('selectedDate');
         const savedCurrentDate = localStorage.getItem('currentDate');
         
-        return {
-            selectedDay: savedDay !== null ? parseInt(savedDay) : 0,
-            selectedDate: savedDate !== null ? new Date(savedDate) : new Date(),
-            currentDate: savedCurrentDate !== null ? new Date(savedCurrentDate) : new Date()
+        const hasValidSavedData = () => {
+            if (!savedDate) return false;
+            const savedDateObj = new Date(savedDate);
+            const today = getTodayDate();
+            const diffDays = Math.floor((today - savedDateObj) / (1000 * 60 * 60 * 24));
+            return diffDays < 1;
         };
+
+        if (hasValidSavedData()) {
+            return {
+                selectedDay: savedDay !== null ? parseInt(savedDay) : getDayIndex(getTodayDate()),
+                selectedDate: savedDate !== null ? new Date(savedDate) : getTodayDate(),
+                currentDate: savedCurrentDate !== null ? new Date(savedCurrentDate) : getTodayDate()
+            };
+        } else {
+            const today = getTodayDate();
+            return {
+                selectedDay: getDayIndex(today),
+                selectedDate: today,
+                currentDate: today
+            };
+        }
     };
 
     const savedData = loadSavedData();
@@ -54,6 +107,19 @@ const Timetable = () => {
 
     const days = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
     const fullDays = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+
+    useEffect(() => {
+        if (!isInitialized) {
+            const today = getTodayDate();
+            const isTodayInCurrentMonth = currentDate.getMonth() === today.getMonth() &&
+                                         currentDate.getFullYear() === today.getFullYear();
+            
+            if (!isTodayInCurrentMonth) {
+                setCurrentDate(today);
+            }
+            setIsInitialized(true);
+        }
+    }, [currentDate, isInitialized]);
 
     useEffect(() => {
         localStorage.setItem('selectedDay', selectedDay.toString());
@@ -100,6 +166,13 @@ const Timetable = () => {
         fetchTimetable(userGroup, month);
     }, [currentDate]);
 
+    useEffect(() => {
+        if (selectedDate) {
+            const weekParity = getWeekParityForDate(selectedDate);
+            setCurrentWeek(weekParity);
+        }
+    }, [selectedDate]);
+
     const currentSchedule = timetableData?.[currentWeek]?.[selectedDay] || [];
     const selectedFullSchedule = timetableData?.[currentWeek]?.[selectedDay] || [];
     const selectedDayName = fullDays[selectedDay];
@@ -144,6 +217,7 @@ const Timetable = () => {
             const isSelected = i === selectedDate.getDate() && 
                               currentDate.getMonth() === selectedDate.getMonth() &&
                               currentDate.getFullYear() === selectedDate.getFullYear();
+            
             daysArray.push(
                 <div 
                     key={i} 
