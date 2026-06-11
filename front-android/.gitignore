@@ -1,0 +1,47 @@
+# Built artifacts
+**/build/
+.externalNativeBuild
+.cxx
+/captures
+
+# Gradle
+.gradle/
+/local.properties
+/gradle.properties
+
+# IntelliJ/Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+.navigation/
+
+# Android Studio - Java/Kotlin
+*.class
+/out/
+
+# Android Studio - Device/Emulator
+*.apk
+*.aar
+*.ap_
+*.dex
+
+# Secrets and local configs
+secrets.properties
+google-services.json
+jks/
+keystore/
+*.jks
+*.keystore
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
