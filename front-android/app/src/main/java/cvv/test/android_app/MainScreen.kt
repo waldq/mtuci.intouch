@@ -48,7 +48,7 @@ fun MainScreen() {
                 when (state.selectedTab) {
                     Screen.CHATS -> ChatListScreen(state)
                     Screen.PROFILE -> ProfileScreen(username = state.myUsername)
-                    Screen.TIMETABLE -> TimetableScreen()
+                    Screen.TIMETABLE -> TimetableScreen(state)
                     Screen.VIEW_USER_PROFILE -> {
                         state.viewingUser?.let { user ->
                             ProfileScreen(

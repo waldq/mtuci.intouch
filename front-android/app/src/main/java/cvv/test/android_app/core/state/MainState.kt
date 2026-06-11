@@ -7,10 +7,13 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import cvv.test.android_app.api.*
 import cvv.test.android_app.core.data.ACCESS_TOKEN_KEY
 import cvv.test.android_app.core.data.AUTH_PREFS
+import cvv.test.android_app.core.data.DEFAULT_GROUP
 import cvv.test.android_app.core.data.GROUP_ID
 import cvv.test.android_app.ui.navigation.Screen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
+import java.util.Calendar
 
 @Stable
 class MainState(
@@ -26,6 +29,8 @@ class MainState(
     myUserId: MutableState<String?>,
     myUsername: MutableState<String>,
     messageText: MutableState<String>,
+    currentMonth: MutableIntState,
+    timetableData: MutableState<JsonObject?>,
     private val scope: CoroutineScope
 ) {
     var selectedTab by selectedTab
@@ -37,6 +42,8 @@ class MainState(
     var myUserId by myUserId
     var myUsername by myUsername
     var messageText by messageText
+    var currentMonth by currentMonth
+    var timetableData by timetableData
 
     fun init(context: Context) {
         val prefs = context.getSharedPreferences(AUTH_PREFS, Context.MODE_PRIVATE)
@@ -105,6 +112,34 @@ class MainState(
             messageText = ""
         }
     }
+
+    fun fetchTimetable() {
+        scope.launch {
+            try {
+                val request = TimetableRequest(
+                    group = DEFAULT_GROUP,
+                    month = currentMonth - 1 // Исправляем баг апи: отправляем 0-индексированный месяц
+                )
+                val response = RetrofitClient.timetableApi.getTimetable(request)
+                if (response.isSuccessful) {
+                    timetableData = response.body()
+                    Log.d("MainState", "Timetable fetched successfully for month $currentMonth")
+                } else {
+                    Log.e("MainState", "Failed to fetch timetable: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("MainState", "Error fetching timetable: ${e.message}")
+            }
+        }
+    }
+
+    fun changeMonth(delta: Int) {
+        val newMonth = currentMonth + delta
+        if (newMonth in 1..12) {
+            currentMonth = newMonth
+            fetchTimetable()
+        }
+    }
 }
 
 @Composable
@@ -121,6 +156,12 @@ fun rememberMainState(scope: CoroutineScope = rememberCoroutineScope()): MainSta
     val myUserId = remember { mutableStateOf<String?>(null) }
     val myUsername = remember { mutableStateOf("АНАТОЛИЙ") }
     val messageText = remember { mutableStateOf("") }
+    
+    // Получаем текущий месяц (1-12)
+    val calendar = Calendar.getInstance()
+    val initialMonth = calendar.get(Calendar.MONTH) + 1
+    val currentMonth = remember { mutableIntStateOf(initialMonth) }
+    val timetableData = remember { mutableStateOf<JsonObject?>(null) }
 
     return remember {
         MainState(
@@ -136,6 +177,8 @@ fun rememberMainState(scope: CoroutineScope = rememberCoroutineScope()): MainSta
             myUserId = myUserId,
             myUsername = myUsername,
             messageText = messageText,
+            currentMonth = currentMonth,
+            timetableData = timetableData,
             scope = scope
         )
     }
