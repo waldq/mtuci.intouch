@@ -1,45 +1,42 @@
-import { useRef, useEffect } from "react";
-import { io } from 'socket.io-client';
+import { useEffect, useState } from 'react';
+import io from 'socket.io-client';
 
-export const useSocket = (chatId, onMessageReceived) => {
-    const socketRef = useRef(null);
+export const useSocket = (roomId, onMessageReceived) => {
+  const [socket, setSocket] = useState(null);
 
-    useEffect(() => {
-        const token = localStorage.getItem("access_token");
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
 
-        if (!token) {
-            console.error("Нет токена в localStorage! Сокет не запустится.");
-            return;
-        }
+    const newSocket = io(process.env.REACT_APP_API_URL, {
+      transports: ['websocket'],
+      auth: { token }
+    });
 
-        socketRef.current = io(`${process.env.REACT_APP_API_URL}`, {
-            auth: { token:token },
-            transports: ['websocket'],
-        });
+    newSocket.on('connect', () => {
+      console.log('Socket connected');
+      if (roomId) {
+        newSocket.emit('join_room', { room_id: roomId });
+      }
+    });
 
-        const socket = socketRef.current;
+    newSocket.on('receive_message', (data) => {
+      console.log('Message received:', data);
+      if (onMessageReceived) {
+        onMessageReceived(data);
+      }
+    });
 
-        socket.on('connect', () => {
-            console.log('Connected!');
-            console.log(chatId)
-            socket.emit('join_chat', chatId);
-        });
+    newSocket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+    });
 
-        socket.on('receive_message', (data) => {
-            if (onMessageReceived) {
-                onMessageReceived(data);
-            }
-        });
+    setSocket(newSocket);
 
-        socket.on('connect_error', (err) => {
-            console.error('Socket error:', err.message);
-        });
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [roomId]);
 
-        return () => {
-            socket.emit('leave_room', chatId);
-            socket.disconnect();
-        };
-    }, [chatId, onMessageReceived]);
-
-    return socketRef.current;
+  return socket;
 };

@@ -74,10 +74,10 @@ const Login = () => {
                 })
             });
 
-            if (response.status === 200) {
+           if (response.status === 200) {
                 const data = await response.json();
-                console.log('Вход успешен:', data);
                 localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('username', formData.login);
                 navigate('/chats');
             } else if (response.status === 401) {
                 alert('Неверный логин или пароль');

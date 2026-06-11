@@ -24,7 +24,6 @@
   color: var(--text-dark);
 }
 
-/* 1. Левая узкая панель (Иконки) */
 .nav-sidebar {
   width: var(--sidebar-width);
   display: flex;
@@ -75,7 +74,6 @@
   object-fit: cover;
 }
 
-/* 2. Список недавних сообщений */
 .chats-sidebar {
   width: var(--chat-list-width);
   border-right: 1px solid var(--border-light);
@@ -144,7 +142,6 @@
   border-radius: 14px;
   transition: background 0.2s;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .chat-card:hover {
@@ -185,7 +182,6 @@
   text-overflow: ellipsis;
 }
 
-/* 3. Центральное окно чата */
 .chat-window {
   flex: 1;
   display: flex;
@@ -244,19 +240,6 @@
   max-width: 85%;
 }
 
-.chat-image-wrapper {
-  margin-left: 44px;
-  max-width: 400px;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.chat-image {
-  width: 100%;
-  display: block;
-}
-
-/* Поле ввода */
 .chat-footer {
   padding: 20px 24px;
 }
@@ -290,7 +273,6 @@
   align-items: center;
 }
 
-/* 4. Правая информационная панель */
 .chats-info-sidebar {
   width: var(--info-panel-width);
   border-left: 1px solid var(--border-light);
@@ -377,84 +359,6 @@
   border-radius: 50%;
 }
 
-.grid-media {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  margin-top: 15px;
-}
-
-.grid-item {
-  aspect-ratio: 1;
-  background: #f2f2f7;
-  border-radius: 6px;
-}
-
-.chat-list::-webkit-scrollbar-thumb {
-    background: #e5e5ea;
-    border-radius: 10px;
-}
-
-.input-actions {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.action-btn {
-  transition: transform 0.1s ease;
-  display: flex;
-  align-items: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-}
-
-.action-btn:active {
-  transform: scale(0.9);
-}
-
-.icon-muted {
-  color:#6c6c6f;
-  transition: color 0.2s;
-}
-
-.input-active {
-  color:#5856d6;
-}
-
-.emoji-picker-popup {
-  position: absolute;
-  bottom: 100%;
-  left: 10px;
-  background-color: white;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  padding: 10px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  margin-bottom: 10px;
-  z-index: 100;
-}
-
-.emoji-item {
-  font-size: 20px;
-  cursor: pointer;
-  padding: 5px;
-  border-radius: 6px;
-  transition: background 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.emoji-item:hover {
-  background-color: #f0efff;
-}
-
 .EmojiPickermenu {
   position: absolute;
   bottom: 100%;
@@ -537,7 +441,6 @@
   outline: none;
 }
 
-/* Avatar initials styles */
 .avatar-initial {
     border-radius: 50%;
     display: flex;
@@ -579,4 +482,9 @@
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
+}
+
+.bubble {
+    max-width: 300px;
+    word-break: break-word;
 }

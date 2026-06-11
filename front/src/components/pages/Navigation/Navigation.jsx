@@ -15,6 +15,8 @@ const Navigation = () => {
     const goToChats = () => navigate('/chats');
     const goToTimetable = () => navigate('/timetable');
 
+    const username = localStorage.getItem('username') || 'User';
+
     const getInitial = (name) => {
         if (!name) return '?';
         return name.charAt(0).toUpperCase();
@@ -28,8 +30,6 @@ const Navigation = () => {
         }
         return colors[Math.abs(hash) % colors.length];
     };
-
-    const username = localStorage.getItem('username') || 'User';
 
     return (
         <nav className="nav-sidebar">
@@ -49,7 +49,6 @@ const Navigation = () => {
             </div>
             <div className="nav-footer">
                 <div 
-                    className="user-avatar-initial"
                     style={{
                         width: 36,
                         height: 36,
