@@ -12,7 +12,13 @@ class MessageCreate(BaseModel):
 
 
 class MessageUpdate(BaseModel):
+    chat_id: str
+    message_id: str
     new_content: str
+
+class MessageDelete(BaseModel):
+    chat_id: str
+    message_id: str
 
 
 class MessageSend(BaseModel):

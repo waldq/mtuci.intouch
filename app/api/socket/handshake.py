@@ -32,7 +32,7 @@ from app.redis_client import (RedisClient,
                               store_k1_key,
                               store_sigma_b_bytes_hex)
 from app.core.config import settings
-from app.db.database import get_session
+from app.db.database import socketio_get_db_session
 from app.api.users.crud import update_user_pub_key
 
  # Первый шаг рукопожатия во время регистрации. 
@@ -129,7 +129,7 @@ async def step_1_start_handler(sid,
 
         # Сервер сохраняет постоянный публичный ключ пользователя в базу данных, поскольку этот ключ будет меняться только при повторном входе.
         # В дальнейшем сервер в качестве постоянного публичного ключа пользователя будет использовать только его.
-        async with get_session() as session:
+        async with socketio_get_db_session() as session:
             await update_user_pub_key(user_id, client_public_static_key_bytes.hex(), session)
 
         # Сервер вызывает событие для продолжения рукопожатия, отправляя клиенту хэш своего публичного ключа.

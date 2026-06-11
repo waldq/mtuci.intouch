@@ -8,8 +8,8 @@ from app.db.models.chats import Chat, ChatMembersRoles, ChatMembers, ChatType
 
 #Функция создания группового чата.
 async def create_group_chat(chat_data: ChatGroupCreate,
-                      members_data: list[int],
-                      current_user_id: int,
+                      members_data: list[str],
+                      current_user_id: str,
                       session: AsyncSession):
     new_chat = Chat(
         chat_type=chat_data.chat_type,
@@ -41,8 +41,8 @@ async def create_group_chat(chat_data: ChatGroupCreate,
 
 #Функция создания личного чата.
 async def create_direct_chat(chat_data: ChatDirectCreate,
-                             member_id: int,
-                             current_user_id: int,
+                             member_id: str,
+                             current_user_id: str,
                              session: AsyncSession):
     if member_id == current_user_id:
         raise ValueError('Нельзя создать чат с самим собой')
@@ -102,7 +102,7 @@ async def create_direct_chat(chat_data: ChatDirectCreate,
         raise e
 
 #Функция изменения информации о чате.
-async def update_chat_info(new_data: ChatUpdate, chat_id: int, session: AsyncSession):
+async def update_chat_info(new_data: ChatUpdate, chat_id: str, session: AsyncSession):
     statement = update(Chat).where(Chat.id == chat_id)\
         .values(title=new_data.title).returning(Chat)
     result = await session.execute(statement)
@@ -111,7 +111,7 @@ async def update_chat_info(new_data: ChatUpdate, chat_id: int, session: AsyncSes
     return updated_chat_info
 
 #Функция удаления чата в целом (для создателя) и у себя (для остальных пользователей)
-async def delete_chat(chat_id: int, user_id: int, session: AsyncSession): #TODO добавить удаление сообщений в чате
+async def delete_chat(chat_id: str, user_id: str, session: AsyncSession): #TODO добавить удаление сообщений в чате
     statement_user = select(ChatMembers)\
         .where(ChatMembers.chat_id == chat_id)\
         .where(ChatMembers.user_id == user_id)
@@ -121,7 +121,7 @@ async def delete_chat(chat_id: int, user_id: int, session: AsyncSession): #TODO 
     if not current_user:
         raise ValueError('Пользователь не найден в чате.')
 
-    if current_user.role == ChatMembersRoles.CREATOR:
+    if current_user.role == ChatMembersRoles.CREATOR.value or current_user.role == ChatMembersRoles.DIRECT.value:
         await session.execute(
             delete(ChatMembers)\
                 .where(ChatMembers.chat_id == chat_id)
@@ -137,8 +137,8 @@ async def delete_chat(chat_id: int, user_id: int, session: AsyncSession): #TODO 
     return {'result': 'Chat deleted successfully.'}
 
 #Функция добавляения пользователя в чат.
-async def add_chatmembers(chat_id: int, 
-                          members_data: list[int],
+async def add_chatmembers(chat_id: str, 
+                          members_data: list[str],
                           session: AsyncSession):
     results = {'added': [], 'failed': []}
     for user_id in members_data:
@@ -161,8 +161,8 @@ async def add_chatmembers(chat_id: int,
     return results
 
 #Функция изменения информации (роли) участника чата.
-async def update_chatmember(chat_id: int,
-                            member_id: int,
+async def update_chatmember(chat_id: str,
+                            member_id: str,
                             new_role: ChatMembersRoles,
                             session: AsyncSession): #TODO добавить проверку прав изменяющего пользователя (админ или создатель)
     statement = update(ChatMembers)\
@@ -176,7 +176,7 @@ async def update_chatmember(chat_id: int,
     return updated_chatmember
     
 #Функция кика пользователя из чата.
-async def kick_chatmember(chat_id: int, user_id: int, session: AsyncSession): #TODO добавить проверку прав кикающего пользователя (админ или создатель)
+async def kick_chatmember(chat_id: str, user_id: str, session: AsyncSession): #TODO добавить проверку прав кикающего пользователя (админ или создатель)
     statement = delete(ChatMembers)\
         .where(ChatMembers.chat_id == chat_id)\
         .where(ChatMembers.user_id == user_id)
@@ -185,7 +185,7 @@ async def kick_chatmember(chat_id: int, user_id: int, session: AsyncSession): #T
     return {'result': 'Chat member deleted.'}
 
 #Функция, возвращающая id чатов пользователя.
-async def read_user_chats(user_id: int, session: AsyncSession):
+async def read_user_chats(user_id: str, session: AsyncSession):
     statement = select(Chat)\
         .join(ChatMembers, ChatMembers.chat_id == Chat.id)\
         .where(ChatMembers.user_id == user_id)\

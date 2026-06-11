@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, String, LargeBinary, ForeignKey, Index
+from sqlalchemy import BigInteger, String, LargeBinary, ForeignKey, Index, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
 
@@ -68,8 +68,9 @@ class UserPublic(Base):
     register_date: Mapped[datetime] = mapped_column(default=datetime.now)
 
     __table_args__ = (
-        Index('idx_users_username_prefix', 'username', postgresql_ops={'username': 'text_pattern_ops'}),
-        Index('idx_users_tag_prefix', 'tag', postgresql_ops={'tag': 'text_pattern_ops'})
+        Index('idx_users_tag_lower_unique', func.lower(text('tag')), unique=True),
+        Index('idx_users_username_lower_prefix', func.lower(text('username')), postgresql_ops={'lower': 'text_pattern_ops'}),
+        Index('idx_users_tag_lower_prefix', func.lower(text('tag')), postgresql_ops={'lower': 'text_pattern_ops'}),
     )
 
 class UserKeys(Base):

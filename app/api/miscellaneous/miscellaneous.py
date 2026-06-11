@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.miscellaneous.schemas import TimetableIn
-from app.db.database import get_session
+from app.db.database import fastapi_get_db_session
 from app.core.config import settings
 
 router = APIRouter(prefix='/misc', tags=['misc'])
@@ -11,7 +11,7 @@ router = APIRouter(prefix='/misc', tags=['misc'])
 #Эндпоинт, возвращающий расписание по группе за месяц в формате json. 
 @router.post('/timetable')
 async def timetable(
-    data: TimetableIn, session: AsyncSession = Depends(get_session)
+    data: TimetableIn, session: AsyncSession = Depends(fastapi_get_db_session)
 ):
     url = settings.TIMETABLE_URL
     headers = {

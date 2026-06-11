@@ -11,7 +11,7 @@ from app.api.auth.schemas import UserCreate, UserOut, Token
 from app.api.auth.dependencies import get_refresh_token_data, get_access_key
 from app.core.security import hash_password, create_access_token, create_refresh_token, authenticate_user
 from app.core.deps import gen_next_id
-from app.db.database import get_session
+from app.db.database import fastapi_get_db_session
 from app.redis_client import get_redis, store_tokens
 from app.api.users.crud import get_user_auth_by_id
 
@@ -22,7 +22,7 @@ router = APIRouter(prefix='/auth', tags=['auth'])
 # Эндпоинт регистрации.
 @router.post('/register', status_code=status.HTTP_201_CREATED, response_model=UserOut)
 async def register_user(user: UserCreate, # Получает данные из модели UserCreate и сессию базы данных (передавать не нужно).
-                        session: AsyncSession = Depends(get_session)):
+                        session: AsyncSession = Depends(fastapi_get_db_session)):
     hashed_pwd = hash_password(user.password)
     try:  # Пробует создать экземпляр пользователя и сразу добавить в базу.
         user_out = await create_user(user, hashed_pwd, session)
@@ -40,7 +40,7 @@ async def register_user(user: UserCreate, # Получает данные из �
 async def login_user(response: Response,
                      redis_client: redis.Redis = Depends(get_redis),
                      form_data: OAuth2PasswordRequestForm = Depends(),
-                     session: AsyncSession = Depends(get_session)):
+                     session: AsyncSession = Depends(fastapi_get_db_session)):
     # Пытается аутентифицировать (проверить юзера по данным) и плучить экземпляр юзера, в противном случае False.
     user = await authenticate_user(form_data.username, form_data.password, session)
     if not user:  # Если юзера нет, выдаст ошибку 401.
@@ -90,7 +90,7 @@ async def login_user(response: Response,
 async def refresh_access_token(request: Request,
                                response: Response,
                                redis_client: redis.Redis = Depends(get_redis),
-                               session: AsyncSession = Depends(get_session)):
+                               session: AsyncSession = Depends(fastapi_get_db_session)):
     refresh_token = request.cookies.get('refresh_token')
 
     if not refresh_token:
