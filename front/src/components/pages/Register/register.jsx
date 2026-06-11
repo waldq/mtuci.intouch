@@ -101,8 +101,7 @@ const Register = () => {
                     localStorage.setItem('access_token', data.access_token);
                 }
 
-                alert('Регистрация прошла успешно!');
-                navigate('/chats');
+                navigate('/login');
             } else if (response.status === 409) {
                 const error = await response.json();
                 alert(error.detail || 'Пользователь с таким логином уже существует');
