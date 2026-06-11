@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     Calendar as CalendarIcon,
@@ -10,19 +10,6 @@ import {
 const Navigation = () => {
     const navigate = useNavigate();
     const location = useLocation();
-
-    const getPageTitle = (path) => {
-        const titles = {
-            '/dashboard': 'Панель навигации',
-            '/timetable': 'Расписание',
-            '/chats': 'Чаты'
-        };
-        return titles[path] || 'Страница';
-    };
-
-    useEffect(() => {
-        document.title = getPageTitle(location.pathname);
-    }, [location.pathname]);
 
     const goToDashboard = () => navigate('/dashboard');
     const goToChats = () => navigate('/chats');

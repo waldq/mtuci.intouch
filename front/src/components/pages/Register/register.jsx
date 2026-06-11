@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet';
+import { Helmet } from "react-helmet-async";
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './register.css';
@@ -32,12 +32,18 @@ const Register = () => {
     };
 
     const hasFormErrors = () => {
-        return formData.password !== formData.confirmPassword || Object.values(errors).some(error => error !== '');
+        return Object.values(errors).some(error => error !== '') || 
+               formData.password !== formData.confirmPassword ||
+               !formData.username || !formData.login || !formData.password;
     };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
+        if (touched[name]) {
+            const error = validateField(name, value);
+            setErrors({ ...errors, [name]: error });
+        }
     };
 
     const handleBlur = (e) => {
@@ -54,8 +60,21 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (hasFormErrors()) {
-            alert('Исправьте ошибки в форме!');
+        // Валидация всех полей перед отправкой
+        const newErrors = {};
+        Object.keys(formData).forEach(key => {
+            const error = validateField(key, formData[key]);
+            if (error) newErrors[key] = error;
+        });
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            setTouched({
+                username: true,
+                login: true,
+                password: true,
+                confirmPassword: true
+            });
             return;
         }
 
@@ -83,14 +102,7 @@ const Register = () => {
                 }
 
                 alert('Регистрация прошла успешно!');
-                setFormData({
-                    username: '',
-                    login: '',
-                    password: '',
-                    confirmPassword: ''
-                });
-                setTouched({});
-                setErrors({});
+                navigate('/chats');
             } else if (response.status === 409) {
                 const error = await response.json();
                 alert(error.detail || 'Пользователь с таким логином уже существует');
@@ -128,7 +140,6 @@ const Register = () => {
                                     value={formData.username}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
-                                    required
                                 />
                                 {touched.username && errors.username && (
                                     <span className="reg-error-message">{errors.username}</span>
@@ -144,7 +155,6 @@ const Register = () => {
                                     value={formData.login}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
-                                    required
                                 />
                                 {touched.login && errors.login && (
                                     <span className="reg-error-message">{errors.login}</span>
@@ -160,7 +170,6 @@ const Register = () => {
                                     value={formData.password}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
-                                    required
                                 />
                                 {touched.password && errors.password && (
                                     <span className="reg-error-message">{errors.password}</span>
@@ -176,7 +185,6 @@ const Register = () => {
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
-                                    required
                                 />
                                 {touched.confirmPassword && errors.confirmPassword && (
                                     <span className="reg-error-message">{errors.confirmPassword}</span>
@@ -185,9 +193,9 @@ const Register = () => {
                         </div>
 
                         <button 
-                        type="submit" 
-                        className="reg-button"
-                        disabled={isLoading || hasFormErrors()}
+                            type="submit" 
+                            className="reg-button"
+                            disabled={isLoading}
                         >
                             {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
                         </button>

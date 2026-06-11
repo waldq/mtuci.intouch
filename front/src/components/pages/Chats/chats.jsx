@@ -1,14 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback} from 'react';
+import { Helmet } from "react-helmet-async";
 import Navigation from '../Navigation/Navigation';
 import "./chats.css";
 import { useSocket } from "./useSocket";
 import{
-    //Settings as SettingsIcon,
-    //Edit3 as EditIcon,
-    //Video as VideoIcon,
     Smile as EmojiIcon,
-    //Mic as MicIcon,
-    //Paperclip as PaperclipIcon,
     Send as SendIcon,
     Search as SearchIcon
 } from 'lucide-react';
@@ -112,7 +108,13 @@ const Chats = () => {
   
 
   return (
-  <div className="messenger-container">
+  <>
+    <Helmet>
+      <title>Чаты</title>
+      <meta name="description" content="Ваши чаты" />
+    </Helmet>
+    
+    <div className="messenger-container">
     
     <Navigation />
 
@@ -309,6 +311,7 @@ const Chats = () => {
       </div>
     </aside>
   </div>
+  </>
   );
 };
 
