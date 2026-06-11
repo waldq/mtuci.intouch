@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession, AsyncAttrs
 from typing import AsyncGenerator, Any
+from contextlib import asynccontextmanager
 
 from app.db.models.chats import *
 from app.db.models.messages import *
@@ -22,6 +23,11 @@ async def create_db():
 
 # Функция, создающая сессию для взаимодействия с бдшкой. В каждом эндпоинте своя сессия.
 # После выполнения кода сессия автоматически закрывается.
-async def get_session() -> AsyncGenerator[AsyncSession, Any]:
+async def fastapi_get_db_session() -> AsyncGenerator[AsyncSession, Any]:
+    async with async_session_maker() as session:
+        yield session
+
+@asynccontextmanager
+async def socketio_get_db_session() -> AsyncGenerator[AsyncSession, Any]:
     async with async_session_maker() as session:
         yield session

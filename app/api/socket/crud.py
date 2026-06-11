@@ -6,8 +6,8 @@ from app.db.models.messages import Message, MessageType
 
 # Функция создания сообщения в бд.
 async def create_message(
-        sender_id: int,
-        chat_id: int,
+        sender_id: str,
+        chat_id: str,
         content: str,
         msg_type: MessageType,
         reply_to_id: int | None,
@@ -29,13 +29,13 @@ async def create_message(
         raise e
 
 # Функция получания сообщения по id, sql-запрос.
-async def get_message_by_id(id: int, session: AsyncSession):
+async def get_message_by_id(id: str, session: AsyncSession):
     statement = select(Message).where(id == Message.id)
     results = await session.execute(statement=statement)
     return results.scalar_one_or_none()
 
 #Функция для изменения сообщения.
-async def update_message(message_id: int, new_content: str, session: AsyncSession):
+async def update_message(message_id: str, new_content: str, session: AsyncSession):
     statement = update(Message).where(Message.id == message_id)\
         .values(content=new_content, updated_at=datetime.now()).returning(Message)
     result = await session.execute(statement)
@@ -44,8 +44,16 @@ async def update_message(message_id: int, new_content: str, session: AsyncSessio
     return updated_message
 
 #Функция для удаления сообщения.
-async def delete_message(message_id: int, session: AsyncSession):
+async def delete_message(message_id: str, session: AsyncSession):
     statement = delete(Message).where(Message.id == message_id)
     await session.execute(statement)
     await session.commit()
     return {'message': 'Message deleted'}
+
+
+#Функция, возвращающая все сообщения в чате.
+async def read_chat_messages(chat_id: str, session: AsyncSession):
+    statement = select(Message).where(Message.chat_id == chat_id)
+    results = await session.execute(statement)
+    await session.commit()
+    return results.scalars().all()

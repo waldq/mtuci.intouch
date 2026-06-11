@@ -3,9 +3,9 @@ from typing import Annotated
 import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import get_session
+from app.db.database import socketio_get_db_session
 from app.api.auth.dependencies import validate_socket_token
-from app.api.users.crud import get_user_base_by_id, get_user_auth_by_id, get_user_public_by_id
+from app.api.users.crud import get_user_public_by_id
 from app.api.socket.server import sio
 from app.redis_client import RedisClient
 
@@ -33,9 +33,8 @@ async def connect_handler(sid, environ, auth):
         if not user_id:
             return False
 
-        async for session in get_session():
+        async with socketio_get_db_session() as session:
             user = await get_user_public_by_id(user_id, session)
-            break
 
         session_payload = {
             'username': user.username,
@@ -55,12 +54,11 @@ async def disconnect_handler(sid):
             user_id = session_data.get('user_id')
 
         if user_id:
-            async for session in get_session():
+            async with socketio_get_db_session() as session:
                 user = await get_user_public_by_id(user_id, session)
                 user.last_seen_date = datetime.now()
 
                 session.add(user)
                 await session.commit()
-                break
     except Exception as e:
         raise e

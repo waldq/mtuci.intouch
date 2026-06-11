@@ -11,3 +11,12 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.user-avatar-initial {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.user-avatar-initial:hover {
+    transform: scale(1.05);
+}

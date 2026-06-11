@@ -3,6 +3,12 @@ import { io } from 'socket.io-client';
 
 export const useSocket = (chatId, onMessageReceived) => {
     const socketRef = useRef(null);
+    
+    const onMessageReceivedRef = useRef(onMessageReceived);
+
+    useEffect(() => {
+        onMessageReceivedRef.current = onMessageReceived;
+    }, [onMessageReceived]);
 
     useEffect(() => {
         const token = localStorage.getItem("access_token");
@@ -13,21 +19,19 @@ export const useSocket = (chatId, onMessageReceived) => {
         }
 
         socketRef.current = io(`${process.env.REACT_APP_API_URL}`, {
-            auth: { token:token },
+            auth: { token: token },
             transports: ['websocket'],
         });
 
         const socket = socketRef.current;
 
         socket.on('connect', () => {
-            console.log('Connected!');
-            console.log(chatId)
-            socket.emit('join_chat', chatId);
+            console.log('Сессия сокета открыта');
         });
 
         socket.on('receive_message', (data) => {
-            if (onMessageReceived) {
-                onMessageReceived(data);
+            if (onMessageReceivedRef.current) {
+                onMessageReceivedRef.current(data);
             }
         });
 
@@ -36,10 +40,34 @@ export const useSocket = (chatId, onMessageReceived) => {
         });
 
         return () => {
-            socket.emit('leave_room', chatId);
+            console.log('Полное закрытие сокета');
             socket.disconnect();
         };
-    }, [chatId, onMessageReceived]);
+    }, []);
+
+    useEffect(() => {
+        const socket = socketRef.current;
+        if (!socket) return;
+
+        if (chatId) {
+            if (socket.connected) {
+                console.log('Вход в чат:', chatId);
+                socket.emit('join_chat', chatId);
+            }
+
+            const handleConnect = () => {
+                console.log("Вход в комнату после переподключения сокета:", chatId);
+                socket.emit('join_chat', chatId);
+            };
+            socket.on('connect', handleConnect);
+
+            return () => {
+                console.log('Покидание комнаты:', chatId);
+                socket.emit('leave_chat', chatId); 
+                socket.off('connect', handleConnect);
+            };
+        }
+    }, [chatId]);
 
     return socketRef.current;
 };
