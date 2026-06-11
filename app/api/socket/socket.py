@@ -185,11 +185,12 @@ async def edit_message_handler(sid, data: MessageUpdate):
 @sio.on('get_chat_messages')
 async def get_chat_messages_handler(sid, data):
     chat_id = data.get('chat_id')
-    if chat_id:
-        async with socketio_get_db_session() as session:
-            results = await read_chat_messages(chat_id, session)
-            results_list = list(results)
-            if results_list:
-                results_dict = jsonable_encoder(results_list)
-            await sio.emit('chat_messages_result', results_dict, to=sid)
-    await sio.emit('chat_messages_result', {'result': 'Failure. Invalid data.'}, to=sid)
+    if not chat_id:
+        await sio.emit('chat_messages_result', {'result': 'Failure. Invalid data.'}, to=sid)
+
+    async with socketio_get_db_session() as session:
+        results = await read_chat_messages(chat_id, session)
+        results_list = list(results)
+        if results_list:
+            results_dict = jsonable_encoder(results_list)
+        await sio.emit('chat_messages_result', results_dict, to=sid)
