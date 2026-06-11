@@ -37,7 +37,9 @@ data class ChatInviteRequest(
 data class ChatResponse(
     val id: Long,
     @SerialName("chat_type") val chatType: String,
-    val title: String? = null
+    val title: String? = null,
+    @SerialName("interlocutor_id") val interlocutorId: String? = null,
+    @SerialName("interlocutor_username") val interlocutorUsername: String? = null
 )
 
 interface ChatsApi {
