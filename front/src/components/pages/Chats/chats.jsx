@@ -104,8 +104,19 @@ const Chats = () => {
     scrollToBottom();
   }, [messages]);
 
+  const getInitial = (name) => {
+    if (!name) return '?';
+    return name.charAt(0).toUpperCase();
+  };
 
-  
+  const getAvatarColor = (name) => {
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7B731'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
 
   return (
   <>
@@ -153,7 +164,14 @@ const Chats = () => {
               className={`chat-card ${activeChatId === chat.id ? 'active' : ''}`}
               onClick={() => setActiveChatId(chat.id)}
             >
-            <img src="ope-avatar.jpg" className="avatar-md" alt={chatName} />
+            <div 
+              className="avatar-md avatar-initial"
+              style={{
+                backgroundColor: getAvatarColor(chatName)
+              }}
+            >
+              {getInitial(chatName)}
+            </div>
             <div className="chat-info">
               <div className="chat-info-row">
                 <span className="user-name">{chatName}</span>
@@ -190,7 +208,34 @@ const Chats = () => {
     <main className="chat-window">
       <header className="chat-header">
         <div className="current-user">
-          <img src="ope-avatar.jpg" className="avatar-sm" />
+          <div 
+            className="avatar-sm avatar-initial"
+            style={{
+              backgroundColor: getAvatarColor((() => {
+                const currentChat = contacts.find(c => c.id === activeChatId);
+                if (currentChat){
+                  if (currentChat.chat_type === 'group') {
+                    return currentChat.title;
+                  } else {
+                    return `user${String(currentChat.id).slice(-4)}`
+                  }
+                }
+                return 'User';
+              })())
+            }}
+          >
+            {getInitial((() => {
+              const currentChat = contacts.find(c => c.id === activeChatId);
+              if (currentChat){
+                if (currentChat.chat_type === 'group') {
+                  return currentChat.title;
+                } else {
+                  return `user${String(currentChat.id).slice(-4)}`
+                }
+              }
+              return 'U';
+            })())}
+          </div>
           <div>
             <p className="user-name">
               {(() => {
@@ -217,7 +262,14 @@ const Chats = () => {
             key={msg.id} 
             className={`message-row ${msg.sender_id === 'my_id' ? 'own-message' : ''}`}
           >
-            <img src="ope-avatar.jpg" className="avatar-xs" alt="avatar" />
+            <div 
+              className="avatar-xs avatar-initial"
+              style={{
+                backgroundColor: getAvatarColor(msg.sender_name || 'User')
+              }}
+            >
+              {getInitial(msg.sender_name || 'U')}
+            </div>
             <div className="message-content">
               <p className="message-meta">
                 {msg.sender_id === 'my_id' ? 'Вы' : 'Ope'} 
@@ -282,6 +334,11 @@ const Chats = () => {
         {['Trudy', 'Jessie', 'Alex'].map(name => (
           <div key={name} className="story-item">
             <div className="story-ring">
+              <div style={{
+                backgroundColor: getAvatarColor(name)
+              }}>
+                {getInitial(name)}
+              </div>
             </div>
             <span className="story-name">{name}</span>
           </div>
@@ -291,8 +348,15 @@ const Chats = () => {
       <div className="mini-profile">
         <h3 className="Profile">Профиль</h3>
           <div className="profile-avatar-container">
-          <img src="ope-avatar.jpg" className="avatar-lg" />
-          <div className="online-badge"></div>
+            <div 
+              className="avatar-lg avatar-initial"
+              style={{
+                backgroundColor: getAvatarColor('Ope')
+              }}
+            >
+              {getInitial('Ope')}
+            </div>
+            <div className="online-badge"></div>
         </div>
         <h3 className="profile-name">Ope</h3>
         <p className="profile-handle">@_Manlikeope</p>

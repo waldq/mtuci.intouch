@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
-<<<<<<< HEAD
-import "./Timetable.css";
-=======
 import { Helmet } from "react-helmet-async";
 import "./timetable.css";
->>>>>>> 901f3d3024a40e0a2280517d9f00b1b83de618f7
 import {
     Calendar as CalendarIcon,
     Clock as ClockIcon,
