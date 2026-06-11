@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.dependencies import get_current_user
@@ -53,7 +53,10 @@ async def create_chat_direct(chat_data: ChatDirectCreate,
         return new_chat
     
     except ValueError as e:
-        raise e
+        raise HTTPException(
+            detail=str(e),
+            status_code=status.HTTP_400_BAD_REQUEST
+            )
 
 #Эндпоинт изменения информации (роли) участника чата. 
 @router.patch('/update_chat_info')

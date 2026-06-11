@@ -1,10 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select, delete, update
+from sqlalchemy import select, delete, update, and_
 from sqlalchemy.orm import defer
 
 from app.api.chats.schemas import ChatGroupCreate, ChatDirectCreate, ChatUpdate
-from app.db.models.chats import Chat, ChatMembersRoles, ChatMembers
+from app.db.models.chats import Chat, ChatMembersRoles, ChatMembers, ChatType
 
 #Функция создания группового чата.
 async def create_group_chat(chat_data: ChatGroupCreate,
@@ -44,6 +44,31 @@ async def create_direct_chat(chat_data: ChatDirectCreate,
                              member_id: int,
                              current_user_id: int,
                              session: AsyncSession):
+    if member_id == current_user_id:
+        raise ValueError('Нельзя создать чат с самим собой')
+
+    statement = select(ChatMembers.chat_id).where(
+        and_(
+            ChatMembers.user_id == current_user_id, 
+            ChatMembers.role == ChatType.DIRECT
+        )
+    )
+    result = await session.execute(statement)
+    current_user_chats = {row[0] for row in result.fetchall()}
+
+    if current_user_chats:
+        statement = select(ChatMembers.chat_id).where(
+            and_(
+                ChatMembers.user_id == member_id, 
+                ChatMembers.chat_id.in_(current_user_chats)
+            )
+        )
+
+        result = await session.execute(statement)
+        
+        if result.fetchall():
+            raise ValueError('Direct чат между пользователями уже существует')
+
     new_chat = Chat(
         chat_type=chat_data.chat_type,
         title = chat_data.title

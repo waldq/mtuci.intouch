@@ -17,12 +17,50 @@ router = APIRouter(prefix='/socket', tags=['socket'])
 
 @sio.on('join_chat')  # TODO
 async def join_chat_handler(sid, room_id):
+    print("HANDLER CALLED", sid)
+    user_data = await sio.get_session(sid)
+    if not user_data or not user_data.get('user_id'):
+        await sio.emit('error', {'message': 'User not authenticated'}, to=sid)
+        return
+    
     await sio.enter_room(sid, room_id)
+    
+    # Оповестить других участников
+    await sio.emit('user_joined', {
+        'user_id': str(user_data['user_id']),
+        'username': user_data.get('username'),
+        'room_id': str(room_id)
+    }, room=str(room_id), skip_sid=sid)
+    
+    # Отправить подтверждение пользователю
+    await sio.emit('joined_chat', {
+        'room_id': str(room_id),
+        'success': True
+    }, to=sid)
 
 
 @sio.on('leave_chat')  # TODO
 async def leave_room_handler(sid, room_id):
-   await sio.leave_room(sid, room_id)
+    print("HANDLER CALLED", sid)
+    user_data = await sio.get_session(sid)
+    if not user_data or not user_data.get('user_id'):
+        await sio.emit('error', {'message': 'User not authenticated'}, to=sid)
+        return
+    
+    await sio.leave_room(sid, room_id)
+
+    # Оповестить других участников
+    await sio.emit('user_left', {
+        'user_id': str(user_data['user_id']),
+        'username': user_data.get('username'),
+        'room_id': str(room_id)
+    }, room=str(room_id), skip_sid=sid)
+
+    # Предложить вернуться в чат
+    await sio.emit('left_chat', {
+        'room_id': str(room_id),
+        'success': True
+    }, to=sid)
 
 
 @sio.on('send_message')
