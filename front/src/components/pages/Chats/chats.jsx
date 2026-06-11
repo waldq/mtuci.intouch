@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback} from 'react';
 import { Helmet } from "react-helmet-async";
 import Navigation from '../Navigation/Navigation';
 import "./chats.css";
@@ -10,150 +10,151 @@ import{
 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react'
 
+
 const Chats = () => {
-  const [chatMessages, setChatMessages] = useState({});
+  const [messages, setMessages] = useState([]);
+
   const [activeChatId, setActiveChatId] = useState();
+
   const [messageText, setMessageText] = useState('');
+
   const [contacts, setContacts] = useState([]);
-  const currentUsername = localStorage.getItem('username') || 'User';
+  
+  const [groups,setGroups] = useState([
+  { id: 101, name: 'Group1', lastMessage: 'message1', time: '10:00', online: true },
+  { id: 102, name: 'Group2', lastMessage: 'messadge1', time: 'Yesterday', online: true },
+  ]);
+
+  const [activeTab,setActiveTab]=useState('personal')
+
+  const [showEmojiPicker,setShowEmojiPicker]=useState(false);
+
+  const [showSearchWindow,setShowSearchWindow] = useState(false);
+
+  const [searchTag, setSearchTag] = useState('');
+
+  const [searchResults, setSearchResults] = useState([])
 
   useEffect(() => {
     const fetchChats = async () => {
       try {
         const token = localStorage.getItem('access_token');
         if (!token) return;
+        
         const response = await fetch(`${process.env.REACT_APP_API_URL}/chats/user_chats/`, {
           headers: {'Authorization': `Bearer ${token}`}
         });
+        
         if (response.ok) {
           const data = await response.json();
+          console.log(data);
           setContacts(data);
+
           if (data.length > 0 && !activeChatId) {
             setActiveChatId(data[0].id);
+            console.log(activeChatId)
           }
         }
       } catch(err) {
         console.error("Ошибка при получении чатов:", err);
       }
     };
+
     fetchChats();
   }, []);
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!activeChatId) return;
-      try {
-        const token = localStorage.getItem('access_token');
-        if (!token) return;
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/chats/messages/${activeChatId}/`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setChatMessages(prev => ({
-            ...prev,
-            [activeChatId]: data
-          }));
-        }
-      } catch (err) {
-        console.error("Ошибка при получении сообщений:", err);
-      }
-    };
-    fetchMessages();
-  }, [activeChatId]);
-
-  const [groups, setGroups] = useState([
-    { id: 101, name: 'Group1', chat_type: 'group', title: 'Group1', lastMessage: '', time: '' },
-    { id: 102, name: 'Group2', chat_type: 'group', title: 'Group2', lastMessage: '', time: '' },
-  ]);
-
-  const [activeTab, setActiveTab] = useState('personal');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showSearchWindow, setShowSearchWindow] = useState(false);
-  const [searchTag, setSearchTag] = useState('');
+  
   
   const onMessageReceived = useCallback((newMessage) => {
-    console.log("Получено от сервера:", newMessage);
-    if (!newMessage || !newMessage.content) return;
-    
-    const chatId = activeChatId;
-    
-    setChatMessages(prev => ({
-      ...prev,
-      [chatId]: [...(prev[chatId] || []), newMessage]
-    }));
-    
-    const newLastMessage = newMessage.content.length > 30 
-      ? newMessage.content.slice(0, 30) + '...' 
-      : newMessage.content;
-    
-    const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    setContacts(prev => prev.map(contact => 
-      contact.id === chatId 
-        ? { ...contact, lastMessage: newLastMessage, time: currentTime }
-        : contact
-    ));
-    
-    setGroups(prev => prev.map(group => 
-      group.id === chatId 
-        ? { ...group, lastMessage: newLastMessage, time: currentTime }
-        : group
-    ));
-  }, [activeChatId]); 
+    console.log("Получено новое сообщение:", newMessage);
+    setMessages((prev) => [...prev, newMessage]);
+  }, []); 
   
   const socket = useSocket(activeChatId, onMessageReceived);
 
-  const handleSendMessage = () => {
-    if (messageText.trim() === '') return;
-    if (!socket || !socket.connected) {
-      console.error("Socket not connected");
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleSearchResults = (data) => {
+      console.log("Получены результаты поиска:", data);
+      if (data && data.results === 'None.') {
+        setSearchResults([]);
+      } else if (Array.isArray(data)) {
+        setSearchResults(data);
+      }
+    };
+
+    socket.on('search_user_results', handleSearchResults);
+
+    return () => {
+      socket.off('search_user_results', handleSearchResults);
+    };
+  }, [socket]);
+
+
+ useEffect(() => {
+    if (!searchTag.trim()) {
+      setSearchResults([]);
       return;
     }
 
-    const tempId = Date.now();
-    const username = localStorage.getItem('username') || 'User';
-    
-    const newLastMessage = messageText.length > 30 
-      ? messageText.slice(0, 30) + '...' 
-      : messageText;
-    const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    setGroups(prev => prev.map(group => 
-      group.id === activeChatId 
-        ? { ...group, lastMessage: newLastMessage, time: currentTime }
-        : group
-    ));
-    
-    setChatMessages(prev => ({
-      ...prev,
-      [activeChatId]: [...(prev[activeChatId] || []), {
-        id: tempId,
-        content: messageText,
-        sender_id: username,
-        sender_name: username,
-        created_at: new Date().toISOString()
-      }]
-    }));
-
-    socket.emit("send_message", {
-      room_id: activeChatId,
-      temp_id: tempId,
-      message: {
-        content: messageText,
-        msg_type: "text",
-        reply_to_id: null
+    const delayDebounceFn = setTimeout(() => {
+      if (socket && socket.connected) {
+        console.log(`Отправляем запрос на поиск: ${searchTag}`);
+        socket.emit('search_user', { username_or_tag: searchTag });
       }
-    });
+    }, 500);
+
+    return () => {
+      clearTimeout(delayDebounceFn);
+    };
+  }, [searchTag, socket]);
+
+  const handleCreateOrOpenChat = (userId) => {
+    console.log(`Попытка открыть или создать чат с пользователем. ID собеседника: ${userId}`);
+    
+    // Закрываем окно поиска и очищаем строку, чтобы интерфейс реагировал на клик
+    setShowSearchWindow(false);
+    setSearchTag('');
+    
+    // Здесь в будущем будет логика открытия существующего чата или запрос к бэкенду
+  };
+
+  const handleSendMessage = () => {
+    if (messageText.trim() === '') return;
+
+    if (!socket || !socket.connected) {
+      console.error("ОШИБКА: Сокет не подключен! Отправка невозможна.");
+      return
+    }
+    console.log('handleSendmsg',activeChatId)
+    const messageData = {
+      room_id: activeChatId,
+      message: {
+            content: messageText,
+            msg_type: "text",
+            reply_to_id: null
+        }
+    }
+
+    if (socket){
+      console.log(messageData)
+      socket.emit("send_message", messageData);
+    }
 
     setMessageText('');
     setShowEmojiPicker(false);
   };
 
   const messagesEndRef = useRef(null);
-  useEffect(() => {
+
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages[activeChatId]]);
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const getInitial = (name) => {
     if (!name) return '?';
@@ -169,141 +170,284 @@ const Chats = () => {
     return colors[Math.abs(hash) % colors.length];
   };
 
-  const currentChatInfo = useMemo(() => {
-    const fromContacts = contacts.find(c => c.id === activeChatId);
-    if (fromContacts) {
-      return {
-        name: fromContacts.chat_type === 'group' 
-          ? (fromContacts.title || `Группа ${String(fromContacts.id).slice(-4)}`)
-          : (fromContacts.title || `user${String(fromContacts.id).slice(-4)}`),
-        type: fromContacts.chat_type,
-        id: fromContacts.id
-      };
-    }
-    const fromGroups = groups.find(g => g.id === activeChatId);
-    if (fromGroups) {
-      return {
-        name: fromGroups.name || fromGroups.title || `Группа ${String(fromGroups.id).slice(-4)}`,
-        type: 'group',
-        id: fromGroups.id
-      };
-    }
-    return { name: 'Выберите чат', type: null, id: null };
-  }, [activeChatId, contacts, groups]);
-
-  const currentMessages = chatMessages[activeChatId] || [];
-
   return (
-    <>
-      <Helmet><title>Чаты</title></Helmet>
-      <div className="messenger-container">
-        <Navigation />
-        <aside className="chats-sidebar">
-          <div className="chats-header">
-            <div className="header-top">
-              <h2>Недавние сообщения</h2>
-              <SearchIcon onClick={() => setShowSearchWindow(!showSearchWindow)} style={{cursor: 'pointer'}}/>
-            </div>
-            <div className="tabs">
-              <button className={`tab ${activeTab === 'personal' ? 'active' : ''}`} onClick={() => setActiveTab('personal')}>Чаты</button>
-              <button className={`tab ${activeTab === 'groups' ? 'active' : ''}`} onClick={() => setActiveTab('groups')}>Группы</button>
-            </div>
-          </div>
-          <div className="chats-list">
-            {(activeTab === 'personal' ? contacts : groups).map((chat) => {
-              let chatName = chat.title || chat.name || `chat${String(chat.id).slice(-4)}`;
-              const displayLastMessage = chat.lastMessage && chat.lastMessage !== '' ? chat.lastMessage : "Нет сообщений";
-              return(
-                <div key={chat.id} className={`chat-card ${activeChatId === chat.id ? 'active' : ''}`} onClick={() => setActiveChatId(chat.id)}>
-                  <div className="avatar-md avatar-initial" style={{ backgroundColor: getAvatarColor(chatName) }}>{getInitial(chatName)}</div>
-                  <div className="chat-info">
-                    <div className="chat-info-row">
-                      <span className="user-name">{chatName}</span>
-                      <span className="timestamp">{chat.time || ''}</span>
-                    </div>
-                    <p className="message-preview">{displayLastMessage}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </aside>
+  <>
+    <Helmet>
+      <title>Чаты</title>
+      <meta name="description" content="Ваши чаты" />
+    </Helmet>
+    
+    <div className="messenger-container">
+    
+    <Navigation />
 
-        {showSearchWindow && (
-          <div className="search-people-modal">
-            <div className="search-modal-header"><h3>Найти</h3></div>
-            <div className="search-modal-body">
-              <div className="search-input-container">
-                <span className="dog-prefix">@</span>
-                <input type="text" placeholder="Введите тег..." className="tag-search-input" value={searchTag} onChange={(e) => setSearchTag(e.target.value)} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        <main className="chat-window">
-          <header className="chat-header">
-            <div className="current-user">
-              <div className="avatar-sm avatar-initial" style={{ backgroundColor: getAvatarColor(currentChatInfo.name) }}>{getInitial(currentChatInfo.name)}</div>
-              <div><p className="user-name">{currentChatInfo.name}</p><p className="status-online">Онлайн</p></div>
-            </div>
-          </header>
-
-          <div className="messages-area">
-            {currentMessages.map((msg) => {
-              const isOwnMessage = msg.sender_id === currentUsername || msg.sender_name === currentUsername;
-              const displayName = isOwnMessage ? currentUsername : (msg.sender_name || 'Пользователь');
-              return (
-                <div key={msg.id} className={`message-row ${isOwnMessage ? 'own-message' : ''}`}>
-                  <div className="avatar-xs avatar-initial" style={{ backgroundColor: getAvatarColor(displayName) }}>{getInitial(displayName)}</div>
-                  <div className="message-content">
-                    <p className="message-meta">{displayName}<span>{msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span></p>
-                    <div className="bubble"><p>{msg.content}</p></div>
-                  </div>
-                </div>
-              );
-            })}
-            <div ref={messagesEndRef} />
-          </div>
-
-          <footer className="chat-footer">
-            <div className="input-wrapper">
-              {showEmojiPicker && (
-                <div className="EmojiPickermenu">
-                  <EmojiPicker onEmojiClick={(emojiData) => setMessageText(prev => prev + emojiData.emoji)} theme="light" searchDisabled={false} />
-                </div>
-              )}
-              <input type="text" placeholder="Напишите сообщение..." className="chat-input" value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} />
-              <div className="input-actions">
-                <button type='button' className='action-btn' onClick={() => setShowEmojiPicker(!showEmojiPicker)}><EmojiIcon /></button>
-                <SendIcon className="send-btn" onClick={handleSendMessage} style={{cursor: 'pointer'}} />
-              </div>
-            </div>
-          </footer>
-        </main>
-
-        <aside className="chats-info-sidebar">
-          <div className="info-header"><h3>Новое</h3></div>
-          <div className="stories-row">
-            {['Trudy', 'Jessie', 'Alex'].map(name => (
-              <div key={name} className="story-item">
-                <div className="story-ring"><div style={{ backgroundColor: getAvatarColor(name) }}>{getInitial(name)}</div></div>
-                <span className="story-name">{name}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mini-profile">
-            <h3 className="Profile">Профиль</h3>
-            <div className="profile-avatar-container">
-              <div className="avatar-lg avatar-initial" style={{ backgroundColor: getAvatarColor(currentUsername) }}>{getInitial(currentUsername)}</div>
-              <div className="online-badge"></div>
-            </div>
-            <h3 className="profile-name">{currentUsername}</h3>
-            <p className="profile-handle">@{currentUsername?.toLowerCase()}</p>
-          </div>
-        </aside>
+    <aside className="chats-sidebar">
+      <div className="chats-header">
+        <div className="header-top">
+          <h2>Недавние сообщения</h2>
+          <SearchIcon 
+          className="search-trigger-btn"
+          onClick={() => setShowSearchWindow(!showSearchWindow)}
+          style={{cursor: 'pointer'}}/>
+        </div>
+        <div className="tabs">
+          <button className={`tab ${activeTab === 'personal' ? 'active' : ''}`}
+            onClick={() => setActiveTab('personal')}
+          >Чаты
+          </button>
+          <button className={`tab ${activeTab === 'groups' ? 'active' : ''}`}
+            onClick={() => setActiveTab('groups')}
+          >Группы
+          </button>
+        </div>
       </div>
-    </>
+      
+      <div className="chats-list">
+        {(activeTab === 'personal' ? contacts : groups).map((chat) => {
+          let chatName="Noname"
+          if (chat.chat_type === "group") {
+            chatName= chat.title || String(chat.id).slice(-4)
+          } else {
+            chatName= `chat${String(chat.id).slice(-4)}`
+          }
+          return(
+            <div
+              key={chat.id}
+              className={`chat-card ${activeChatId === chat.id ? 'active' : ''}`}
+              onClick={() => setActiveChatId(chat.id)}
+            >
+            <div 
+              className="avatar-md avatar-initial"
+              style={{
+                backgroundColor: getAvatarColor(chatName)
+              }}
+            >
+              {getInitial(chatName)}
+            </div>
+            <div className="chat-info">
+              <div className="chat-info-row">
+                <span className="user-name">{chatName}</span>
+                <span className="timestamp">{chat.time}</span>
+              </div>
+              <p className="message-preview">{chat.lastMessage || "null"}</p>
+            </div>
+          </div>
+          );
+        })}
+      </div>
+    </aside> 
+
+    {showSearchWindow && (
+      <div className="search-people-modal">
+        <div className="search-modal-header">
+          <h3>Найти</h3>
+        </div>
+        <div className="search-modal-body">
+          <div className="search-input-container">
+            <span className="dog-prefix">@</span>
+            <input 
+              type="text" 
+              placeholder="Введите тег..." 
+              className="tag-search-input"
+              value={searchTag}
+              onChange={(e) => setSearchTag(e.target.value)}
+            />
+          </div>
+          <div className="search-results-list" style={{ marginTop: '15px' }}>
+            {searchResults.length > 0 ? (
+              searchResults.map((user) => (
+                <div 
+                  key={user.id} 
+                  className="search-result-card" 
+                  style={{ display: 'flex', alignItems: 'center', padding: '10px', cursor: 'pointer', gap: '10px' }}
+                  onClick={() => handleCreateOrOpenChat(user.id)}
+                >
+                  <img src="ope-avatar.jpg" className="avatar-md" alt={user.username} />
+                  <div className="user-info">
+                    <p className="user-name" style={{ margin: 0, fontWeight: 'bold' }}>{user.username}</p>
+                    <p className="user-tag" style={{ margin: 0, color: '#888', fontSize: '14px' }}>{user.tag || user.username}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              searchTag.trim() !== '' && <p className="no-results" style={{ color: '#888', textAlign: 'center' }}>Ничего не найдено</p>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    <main className="chat-window">
+      <header className="chat-header">
+        <div className="current-user">
+          <div 
+            className="avatar-sm avatar-initial"
+            style={{
+              backgroundColor: getAvatarColor((() => {
+                const currentChat = contacts.find(c => c.id === activeChatId);
+                if (currentChat){
+                  if (currentChat.chat_type === 'group') {
+                    return currentChat.title;
+                  } else {
+                    return `user${String(currentChat.id).slice(-4)}`
+                  }
+                }
+                return 'User';
+              })())
+            }}
+          >
+            {getInitial((() => {
+              const currentChat = contacts.find(c => c.id === activeChatId);
+              if (currentChat){
+                if (currentChat.chat_type === 'group') {
+                  return currentChat.title;
+                } else {
+                  return `user${String(currentChat.id).slice(-4)}`
+                }
+              }
+              return 'U';
+            })())}
+          </div>
+          <div>
+            <p className="user-name">
+              {(() => {
+                const currentChat = contacts.find(c => c.id === activeChatId);
+                if (currentChat){
+                  if (currentChat.chat_type === 'group') {
+                    return currentChat.title;
+                  } else {
+                    return `user${String(currentChat.id).slice(-4)}`
+                  }
+                }
+              })()}
+            </p>
+            <p className="status-online">Онлайн</p>
+          </div>
+        </div>
+        <div className="header-actions">
+        </div>
+      </header>
+
+      <div className="messages-area">
+        {messages.map((msg) => (
+          <div 
+            key={msg.id} 
+            className={`message-row ${msg.sender_id === 'my_id' ? 'own-message' : ''}`}
+          >
+            <div 
+              className="avatar-xs avatar-initial"
+              style={{
+                backgroundColor: getAvatarColor(msg.sender_name || 'User')
+              }}
+            >
+              {getInitial(msg.sender_name || 'U')}
+            </div>
+            <div className="message-content">
+              <p className="message-meta">
+                {msg.sender_id === 'my_id' ? 'Вы' : 'Ope'} 
+                <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </p>
+              <div className="bubble">
+                <p>{msg.content}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+        <div className="chat-image-wrapper">
+          <img src="interior.jpg" alt="Interior" className="chat-image" />
+        </div>
+        <div ref={messagesEndRef} />
+      </div>
+
+      <footer className="chat-footer">
+        <div className="input-wrapper">
+           {showEmojiPicker && (
+              <div className="EmojiPickermenu">
+                <EmojiPicker 
+                  onEmojiClick={(emojiData) => {
+                    setMessageText(prev => prev + emojiData.emoji);
+                  }}
+                  theme="light"
+                  searchDisabled={false}
+                />
+              </div>
+            )}
+          <input 
+            type="text" 
+            placeholder="Напишите сообщение..." 
+            className="chat-input"
+            value={messageText}
+            onChange={(e) => 
+              setMessageText(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+          />
+          <div className="input-actions">
+            <button
+              type='button'
+              className='action-btn'
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            >
+              <EmojiIcon className={showEmojiPicker ? 'icon-active' : 'icon-muted'}/>
+            </button>
+            <SendIcon className="send-btn"
+            onClick={handleSendMessage}
+            style={{cursor: 'pointer'}} />
+          </div>
+        </div>
+      </footer>
+    </main>
+
+    <aside className="chats-info-sidebar">
+      <div className="info-header">
+        <h3>Новое</h3>
+      </div>
+      
+      <div className="stories-row">
+        {['Trudy', 'Jessie', 'Alex'].map(name => (
+          <div key={name} className="story-item">
+            <div className="story-ring">
+              <div style={{
+                backgroundColor: getAvatarColor(name)
+              }}>
+                {getInitial(name)}
+              </div>
+            </div>
+            <span className="story-name">{name}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mini-profile">
+        <h3 className="Profile">Профиль</h3>
+          <div className="profile-avatar-container">
+            <div 
+              className="avatar-lg avatar-initial"
+              style={{
+                backgroundColor: getAvatarColor('Ope')
+              }}
+            >
+              {getInitial('Ope')}
+            </div>
+            <div className="online-badge"></div>
+        </div>
+        <h3 className="profile-name">Ope</h3>
+        <p className="profile-handle">@_Manlikeope</p>
+      </div>
+
+      <div className="publications-section">
+        <div className="section-header">
+          <h4>Публикации</h4>
+          <span className="chevron"></span>
+        </div>
+        <div className="grid-media">
+          <div className="grid-item"></div>
+          <div className="grid-item"></div>
+          <div className="grid-item"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+  </>
   );
 };
 
