@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.dependencies import get_current_user
@@ -10,7 +10,7 @@ from app.api.chats.crud import (create_group_chat,
                                 kick_chatmember,
                                 read_user_chats)
 from app.api.chats.schemas import ChatGroupCreate, ChatDirectCreate, ChatUpdate
-from app.db.database import get_session
+from app.db.database import fastapi_get_db_session
 from app.api.users.crud import get_user_base_by_id
 
 
@@ -19,9 +19,9 @@ router = APIRouter(prefix='/chats', tags=['chats'])
 #Эндпоинт создания группового чата со списком людей, id создателя подтягивается автоматически.
 @router.post('/create_group')
 async def create_chat_group(chat_data: ChatGroupCreate, 
-                            members_data: list[int],
+                            members_data: list[str],
                             current_user = Depends(get_current_user), 
-                            session: AsyncSession = Depends(get_session)):
+                            session: AsyncSession = Depends(fastapi_get_db_session)):
     current_user_id = current_user.get('user_id')
     try:
         new_chat = await create_group_chat(
@@ -38,9 +38,9 @@ async def create_chat_group(chat_data: ChatGroupCreate,
 #Эндпоинт создания личного чата с одним человеком, id создателя подтягивается автоматически.
 @router.post('/create_direct')
 async def create_chat_direct(chat_data: ChatDirectCreate, 
-                             member_id: int,
+                             member_id: str,
                              current_user = Depends(get_current_user), 
-                             session: AsyncSession = Depends(get_session)):
+                             session: AsyncSession = Depends(fastapi_get_db_session)):
     current_user_id = current_user.get('user_id')
     member_data = await get_user_base_by_id(member_id, session)
     try:
@@ -53,14 +53,17 @@ async def create_chat_direct(chat_data: ChatDirectCreate,
         return new_chat
     
     except ValueError as e:
-        raise e
+        raise HTTPException(
+            detail=str(e),
+            status_code=status.HTTP_400_BAD_REQUEST
+            )
 
 #Эндпоинт изменения информации (роли) участника чата. 
 @router.patch('/update_chat_info')
 async def update_chat(new_data: ChatUpdate,
-                      chat_id: int,
+                      chat_id: str,
                       user_data = Depends(get_current_user), 
-                      session: AsyncSession = Depends(get_session)):
+                      session: AsyncSession = Depends(fastapi_get_db_session)):
     user_id = user_data.get('user_id')
     try:
         new_chat_info = await update_chat_info(new_data=new_data, chat_id=chat_id, session=session)
@@ -71,9 +74,9 @@ async def update_chat(new_data: ChatUpdate,
 
 #Эндпоинт удаления чата в целом (для создателя) и у себя (для остальных ролей).
 @router.delete('/delete_chat')
-async def remove_group_chat(chat_id: int,
+async def remove_group_chat(chat_id: str,
                             user_data = Depends(get_current_user), 
-                            session: AsyncSession = Depends(get_session)):
+                            session: AsyncSession = Depends(fastapi_get_db_session)):
     user_id = user_data.get('user_id')
     try:
         result = await delete_chat(chat_id=chat_id, user_id=user_id, session=session)
@@ -84,10 +87,10 @@ async def remove_group_chat(chat_id: int,
 
 #Эндпоинт приглашения пользователя в чат.
 @router.post('/invite_user') #TODO добавить проверку настроек приватности пользователя
-async def invite_chat_member(chat_id: int,
-                          members_data: list[int] | None,
+async def invite_chat_member(chat_id: str,
+                          members_data: list[str] | None,
                           user_data = Depends(get_current_user), 
-                          session: AsyncSession = Depends(get_session)):
+                          session: AsyncSession = Depends(fastapi_get_db_session)):
     user_id = user_data.get('user_id')
     try:
         results = await add_chatmembers(chat_id=chat_id, members_data=members_data, session=session)
@@ -98,10 +101,10 @@ async def invite_chat_member(chat_id: int,
 
 #Эндпоинт удаления участника чата.
 @router.delete('/kick_user')
-async def kick_chat_member(chat_id: int,
-                           to_kick_id: int,
+async def kick_chat_member(chat_id: str,
+                           to_kick_id: str,
                            user_data = Depends(get_current_user), 
-                           session: AsyncSession = Depends(get_session)): #TODO Добавить проверку прав пользователя, который кикает.
+                           session: AsyncSession = Depends(fastapi_get_db_session)): #TODO Добавить проверку прав пользователя, который кикает.
     user_id = user_data.get('user_id')
     try:
         result = await kick_chatmember(chat_id=chat_id, user_id=to_kick_id, session=session)
@@ -113,7 +116,7 @@ async def kick_chat_member(chat_id: int,
 @router.get('/user_chats')
 async def get_user_chats(
     user_data = Depends(get_current_user), 
-    session: AsyncSession = Depends(get_session)):
+    session: AsyncSession = Depends(fastapi_get_db_session)):
     user_id = user_data.get('user_id')
     try:
         results = await read_user_chats(user_id, session)

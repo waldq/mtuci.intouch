@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta, timezone
 
 from app.core.config import settings
-from app.db.database import get_session
 from app.api.users.crud import get_user_auth_by_login
 
 # Объект-утилита для хэширования по рекомендованному протоколу (Argon2).
