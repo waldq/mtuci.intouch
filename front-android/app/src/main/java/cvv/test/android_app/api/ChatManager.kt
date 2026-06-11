@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.json.JSONArray
 import org.json.JSONObject
 
 @Serializable
@@ -40,6 +41,14 @@ data class IncomingMessage(
 data class SentMessage(
     @SerialName("room_id") val roomId: String,
     val message: Message,
+)
+
+@Serializable
+data class UserSearchResult(
+    @SerialName("user_id") val userId: String? = null,
+    val username: String? = null,
+    val tag: String? = null,
+    val bio: String? = null,
 )
 
 //Singleton-Object для обработки событий в SocketIO
@@ -80,6 +89,9 @@ object ChatManager {
 
     //Публичный поток только для чтения, на который подписываются экраны или сервисы
     val messages = _messages.asSharedFlow()
+
+    private val _searchResults = MutableSharedFlow<List<UserSearchResult>>(replay = 1, extraBufferCapacity = 64)
+    val searchResults = _searchResults.asSharedFlow()
 
     private val _connectionStatus = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val connectionStatus = _connectionStatus.asSharedFlow()
@@ -155,6 +167,29 @@ object ChatManager {
             // Дополнительный логгер для любых событий (если бэкенд шлет что-то другое)
             socket?.on("chat_created") { Log.d("SocketIO", "Event: chat_created received") }
 
+            socket?.on("search_user_results") { args ->
+                Log.d("SocketIO", ">>> INCOMING EVENT: search_user_results")
+                val rawData = args.getOrNull(0)
+                Log.d("SocketIO", "Raw data: $rawData")
+
+                val jsonString = when (rawData) {
+                    is JSONArray -> rawData.toString()
+                    is JSONObject -> rawData.toString()
+                    is String -> rawData
+                    else -> rawData?.toString()
+                }
+
+                if (jsonString != null) {
+                    try {
+                        val results = json.decodeFromString<List<UserSearchResult>>(jsonString)
+                        Log.d("SocketIO", "Search results parsed: $results")
+                        _searchResults.tryEmit(results)
+                    } catch (e: Exception) {
+                        Log.e("SocketIO", "SEARCH PARSING FAILED: ${e.message}")
+                    }
+                }
+            }
+
             socket?.connect()
         } catch (e: Exception) {
             Log.e("SocketIO", "INIT ERROR: ${e.message}")
@@ -191,6 +226,17 @@ object ChatManager {
             socket?.emit("send_message", data)
         } catch (e: Exception) {
             Log.e("SocketIO", "SEND ERROR: ${e.message}")
+        }
+    }
+
+    fun searchUser(query: String) {
+        try {
+            val data = JSONObject()
+            data.put("username_or_tag", query)
+            Log.d("SocketIO", "SEARCHING USER: $data")
+            socket?.emit("search_user", data)
+        } catch (e: Exception) {
+            Log.e("SocketIO", "SEARCH ERROR: ${e.message}")
         }
     }
 
