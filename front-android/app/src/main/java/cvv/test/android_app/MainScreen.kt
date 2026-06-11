@@ -13,6 +13,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import cvv.test.android_app.api.ChatManager
 import cvv.test.android_app.core.data.GROUP_ID
 import cvv.test.android_app.core.state.rememberMainState
 import cvv.test.android_app.ui.components.CreateBottomPanel
@@ -56,14 +57,16 @@ fun MainScreen() {
                                 tag = user.tag, bio = user.bio, isMyProfile = false,
                                 onSendMessage = {
                                     if (state.activeChatPartner?.userId != user.userId) {
-                                        state.pendingChatUserId = user.userId
                                         state.activeChatPartner = user
                                         val existingId =
                                             state.activeChats.entries.find { it.value.userId == user.userId }?.key
                                         if (existingId != null) {
-                                            state.currentChatId =
-                                                existingId; state.pendingChatUserId = null
+                                            state.currentChatId = existingId
+                                            state.pendingChatUserId = null
+                                            state.fetchMessages(context, existingId)
+                                            ChatManager.joinChat(existingId.toString())
                                         } else {
+                                            state.pendingChatUserId = user.userId
                                             state.currentChatId = GROUP_ID
                                         }
                                     }

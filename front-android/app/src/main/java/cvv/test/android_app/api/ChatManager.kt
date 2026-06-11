@@ -13,37 +13,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 @Serializable
-enum class MessageType {
-    @SerialName("text") TEXT,
-    @SerialName("image") IMAGE,
-    @SerialName("file") FILE
-}
-
-@Serializable
-data class Message(
-    val content: String?,
-    @SerialName("msg_type") val msgType: MessageType = MessageType.TEXT,
-    @SerialName("reply_to_id") val replyToId: String? = null,
-)
-
-@Serializable
-data class IncomingMessage(
-    val id: String? = null,
-    @SerialName("sender_id") val senderId: String? = null,
-    @SerialName("chat_id") val chatId: String? = null,
-    val content: String = "",
-    @SerialName("msg_type") val msgType: MessageType = MessageType.TEXT,
-    @SerialName("reply_to_id") val replyToId: String? = null,
-    @SerialName("created_at") val timestamp: String? = null,
-)
-
-@Serializable
-data class SentMessage(
-    @SerialName("room_id") val roomId: String,
-    val message: Message,
-)
-
-@Serializable
 data class UserSearchResult(
     @SerialName("user_id") val userId: String? = null,
     val username: String? = null,
@@ -54,6 +23,7 @@ data class UserSearchResult(
 //Singleton-Object для обработки событий в SocketIO
 object ChatManager {
     //Специальный адрес, чтобы эмулятор видел локальный сервер
+    //Используйте 10.0.2.2 для эмулятора Android или локальный IP вашего ПК
     private const val SOCKET_URL = "http://192.168.240.1:8000"
     private var socket: Socket? = null
     private var currentRoomId: String? = null
@@ -164,6 +134,34 @@ object ChatManager {
                 }
             }
 
+            socket?.on("chat_messages_result") { args ->
+                Log.d("SocketIO", ">>> INCOMING EVENT: chat_messages_result")
+                val rawData = args.getOrNull(0)
+
+                // Если пришел объект с ошибкой {"result": "..."}, просто логируем и выходим
+                if (rawData is JSONObject && rawData.has("result")) {
+                    Log.w("SocketIO", "Server returned error in chat_messages_result: $rawData")
+                    return@on
+                }
+
+                val jsonString = when (rawData) {
+                    is JSONArray -> rawData.toString()
+                    is JSONObject -> rawData.toString()
+                    is String -> rawData
+                    else -> rawData?.toString()
+                }
+
+                if (jsonString != null) {
+                    try {
+                        val messages = json.decodeFromString<List<IncomingMessage>>(jsonString)
+                        Log.d("SocketIO", "History parsed successfully: ${messages.size} messages")
+                        messages.forEach { _messages.tryEmit(it) }
+                    } catch (e: Exception) {
+                        Log.e("SocketIO", "HISTORY PARSING FAILED: ${e.message}")
+                    }
+                }
+            }
+
             // Дополнительный логгер для любых событий (если бэкенд шлет что-то другое)
             socket?.on("chat_created") { Log.d("SocketIO", "Event: chat_created received") }
 
@@ -197,23 +195,27 @@ object ChatManager {
     }
 
     //Функция подключения к чату
-    fun joinChat(chatId: Long) {
-        val idStr = chatId.toString()
-        currentRoomId = idStr
+    fun joinChat(chatId: String) {
+        currentRoomId = chatId
         if (socket?.connected() == true) {
-            Log.d("SocketIO", "Already connected. Joining room: $idStr")
+            Log.d("SocketIO", "Already connected. Joining room: $chatId")
             //Отправка данных на сервер
-            socket?.emit("join_chat", idStr)
+            socket?.emit("join_chat", chatId)
+            
+            // Запрашиваем историю сообщений через сокет
+            val data = JSONObject()
+            data.put("chat_id", chatId)
+            socket?.emit("get_chat_messages", data)
         } else {
-            Log.d("SocketIO", "Waiting for connection to join room: $idStr")
+            Log.d("SocketIO", "Waiting for connection to join room: $chatId")
         }
     }
 
     //Функция отправки сообщения
-    fun sendMessage(roomId: Long, text: String, type: MessageType = MessageType.TEXT) {
+    fun sendMessage(roomId: String, text: String, type: MessageType = MessageType.TEXT) {
         try {
             val sentMessage = SentMessage(
-                roomId = roomId.toString(),
+                roomId = roomId,
                 message = Message(content = text, msgType = type)
             )
             //Преобразуем объект SentMessage в строку

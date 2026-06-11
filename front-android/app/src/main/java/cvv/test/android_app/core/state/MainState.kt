@@ -50,10 +50,11 @@ class MainState(
         val token = prefs.getString(ACCESS_TOKEN_KEY, "") ?: ""
         if (token.isNotEmpty()) {
             ChatManager.connect(token)
-            ChatManager.joinChat(GROUP_ID)
+            ChatManager.joinChat(GROUP_ID.toString())
             scope.launch {
                 try {
                     val response = RetrofitClient.authApi.getMe("Bearer $token")
+                    Log.d("MainState", "getMe response: code=${response.code()}, body=${response.body()}")
                     if (response.isSuccessful) {
                         val profile = response.body()
                         myUserId = profile?.userId
@@ -63,13 +64,43 @@ class MainState(
                     Log.e("MainState", "Profile error: ${e.message}")
                 }
             }
+            
+            // Загружаем список чатов пользователя для поиска существующих директов
+            scope.launch {
+                try {
+                    val response = RetrofitClient.chatsApi.getUserChats("Bearer $token")
+                    Log.d("MainState", "getUserChats response: code=${response.code()}, body=${response.body()}")
+                    if (response.isSuccessful) {
+                        response.body()?.forEach { chat ->
+                            Log.d("MainState", "Checking chat: id=${chat.id}, type=${chat.chatType}, partner=${chat.interlocutorId}")
+                            // Делаем сравнение типа чата нечувствительным к регистру
+                            if (chat.chatType.equals("direct", ignoreCase = true) && chat.interlocutorId != null) {
+                                Log.d("MainState", "Found existing direct chat with user ${chat.interlocutorId} (chatId=${chat.id})")
+                                activeChats[chat.id] = UserSearchResult(
+                                    userId = chat.interlocutorId,
+                                    username = chat.interlocutorUsername ?: chat.title ?: "Чат"
+                                )
+                                // fetchMessages убираем, так как теперь работаем через сокеты при входе в чат
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("MainState", "Load chats error: ${e.message}")
+                }
+            }
         }
 
         scope.launch {
             ChatManager.messages.collect { msg ->
                 val chatId = msg.chatId?.toLongOrNull() ?: GROUP_ID
                 val list = allMessagesByChat.getOrPut(chatId) { mutableStateListOf() }
-                list.add(msg)
+                
+                // Чтобы не дублировать сообщения при загрузке истории
+                if (list.none { it.id == msg.id }) {
+                    list.add(msg)
+                    // Сортируем по времени, если есть id (для истории)
+                    // list.sortBy { it.timestamp } // Опционально
+                }
             }
         }
 
@@ -93,21 +124,46 @@ class MainState(
     fun sendMessage(context: Context) {
         if (messageText.isBlank()) return
         scope.launch {
-            if (pendingChatUserId != null && currentChatId == GROUP_ID) {
-                val prefs = context.getSharedPreferences(AUTH_PREFS, Context.MODE_PRIVATE)
-                val token = prefs.getString(ACCESS_TOKEN_KEY, "") ?: ""
-                val response = RetrofitClient.chatsApi.createDirectChat("Bearer $token", pendingChatUserId?.toLongOrNull() ?: 0L)
-                if (response.isSuccessful) {
-                    response.body()?.id?.let { id ->
-                        currentChatId = id
-                        activeChats[id] = activeChatPartner!!
-                        ChatManager.joinChat(id)
-                        pendingChatUserId = null
-                        ChatManager.sendMessage(id, messageText)
+            // Если у нас есть ID чата (не общий) — просто шлем сообщение
+            if (currentChatId != GROUP_ID) {
+                ChatManager.sendMessage(currentChatId.toString(), messageText)
+                messageText = ""
+                return@launch
+            }
+
+            // Если мы в режиме "отложенного чата" (pending)
+            if (pendingChatUserId != null) {
+                // Еще раз проверяем, не появился ли чат в списке пока мы думали
+                val existingId = activeChats.entries.find { it.value.userId == pendingChatUserId }?.key
+                
+                if (existingId != null) {
+                    currentChatId = existingId
+                    pendingChatUserId = null
+                    ChatManager.joinChat(existingId.toString())
+                    ChatManager.sendMessage(existingId.toString(), messageText)
+                } else {
+                    // Создаем новый чат, так как его точно нет
+                    val prefs = context.getSharedPreferences(AUTH_PREFS, Context.MODE_PRIVATE)
+                    val token = prefs.getString(ACCESS_TOKEN_KEY, "") ?: ""
+                    val response = RetrofitClient.chatsApi.createDirectChat(
+                        "Bearer $token",
+                        pendingChatUserId?.toLongOrNull() ?: 0L
+                    )
+                    Log.d("MainState", "createDirectChat response: code=${response.code()}, body=${response.body()}")
+                    
+                    if (response.isSuccessful) {
+                        response.body()?.id?.let { id ->
+                            currentChatId = id
+                            activeChats[id] = activeChatPartner!!
+                            ChatManager.joinChat(id.toString())
+                            pendingChatUserId = null
+                            ChatManager.sendMessage(id.toString(), messageText)
+                        }
                     }
                 }
             } else {
-                ChatManager.sendMessage(currentChatId, messageText)
+                // Если это просто сообщение в текущий активный чат (например, общий)
+                ChatManager.sendMessage(currentChatId.toString(), messageText)
             }
             messageText = ""
         }
@@ -138,6 +194,25 @@ class MainState(
         if (newMonth in 1..12) {
             currentMonth = newMonth
             fetchTimetable()
+        }
+    }
+
+    fun fetchMessages(context: Context, chatId: Long) {
+        scope.launch {
+            try {
+                val prefs = context.getSharedPreferences(AUTH_PREFS, Context.MODE_PRIVATE)
+                val token = prefs.getString(ACCESS_TOKEN_KEY, "") ?: ""
+                val response = RetrofitClient.messagesApi.getChatMessages("Bearer $token", chatId)
+                Log.d("MainState", "getChatMessages response (chatId=$chatId): code=${response.code()}, messagesCount=${response.body()?.size}")
+                if (response.isSuccessful) {
+                    val messages = response.body() ?: emptyList()
+                    val list = allMessagesByChat.getOrPut(chatId) { mutableStateListOf() }
+                    list.clear()
+                    list.addAll(messages)
+                }
+            } catch (e: Exception) {
+                Log.e("MainState", "Error fetching messages: ${e.message}")
+            }
         }
     }
 }

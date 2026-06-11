@@ -171,7 +171,8 @@ fun ChatListScreen(state: MainState) {
                             time = formatTime(state.allMessagesByChat[chatId]?.lastOrNull()?.timestamp),
                             onClick = {
                                 state.activeChatPartner = partner; chatId?.let {
-                                state.currentChatId = it; ChatManager.joinChat(it)
+                                state.currentChatId = it
+                                ChatManager.joinChat(it.toString())
                             }
                             })
                     }

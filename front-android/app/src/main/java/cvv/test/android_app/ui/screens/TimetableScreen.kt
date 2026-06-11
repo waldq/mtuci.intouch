@@ -246,19 +246,47 @@ fun Dot(color: Color) {
 @Composable
 fun DayScheduleView(state: MainState, selectedDay: Int, onDateSelect: (Int) -> Unit) {
     val calendar = Calendar.getInstance()
+    calendar.set(Calendar.YEAR, 2026) // Указываем год из дизайна
     calendar.set(Calendar.MONTH, state.currentMonth - 1)
     val maxDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-    val days = (1..maxDays).toList()
+    
+    // Предварительно фильтруем дни, исключая воскресенья, чтобы не было пустых отступов в LazyRow
+    val workingDays = (1..maxDays).filter { day ->
+        val dayCalendar = Calendar.getInstance()
+        dayCalendar.set(Calendar.YEAR, 2026)
+        dayCalendar.set(Calendar.MONTH, state.currentMonth - 1)
+        dayCalendar.set(Calendar.DAY_OF_MONTH, day)
+        dayCalendar.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY
+    }
 
     Column {
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 4.dp)
         ) {
-            items(days) { day ->
+            items(workingDays) { day ->
+                // Вычисляем день недели
+                val dayCalendar = Calendar.getInstance()
+                dayCalendar.set(Calendar.YEAR, 2026)
+                dayCalendar.set(Calendar.MONTH, state.currentMonth - 1)
+                dayCalendar.set(Calendar.DAY_OF_MONTH, day)
+                
+                val dayOfWeekInt = dayCalendar.get(Calendar.DAY_OF_WEEK)
+                
+                val dayOfWeek = when(dayOfWeekInt) {
+                    Calendar.MONDAY -> "Пн"
+                    Calendar.TUESDAY -> "Вт"
+                    Calendar.WEDNESDAY -> "Ср"
+                    Calendar.THURSDAY -> "Чт"
+                    Calendar.FRIDAY -> "Пт"
+                    Calendar.SATURDAY -> "Сб"
+                    else -> ""
+                }
+
                 val isSelected = day == selectedDay
                 DateItem(
                     day = day,
+                    dayOfWeek = dayOfWeek,
                     isSelected = isSelected,
                     onClick = { onDateSelect(day) }
                 )
@@ -315,7 +343,7 @@ fun DayScheduleView(state: MainState, selectedDay: Int, onDateSelect: (Int) -> U
 }
 
 @Composable
-fun DateItem(day: Int, isSelected: Boolean, onClick: () -> Unit) {
+fun DateItem(day: Int, dayOfWeek: String, isSelected: Boolean, onClick: () -> Unit) {
     val backgroundColor = if (isSelected) AuthFieldBackground.copy(alpha = 0.8f) else Color.Transparent
 
     Column(
@@ -327,7 +355,18 @@ fun DateItem(day: Int, isSelected: Boolean, onClick: () -> Unit) {
             .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = day.toString().padStart(2, '0'), color = if (isSelected) AuthTextColor else AuthTextColor.copy(alpha = 0.6f), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = day.toString().padStart(2, '0'),
+            color = if (isSelected) AuthTextColor else AuthTextColor.copy(alpha = 0.6f),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = dayOfWeek,
+            color = if (isSelected) AuthTextColor else AuthTextColor.copy(alpha = 0.4f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
