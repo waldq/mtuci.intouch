@@ -75,12 +75,14 @@ async def send_message_handler(sid, data):
     user_data = await sio.get_session(sid)
 
     if not user_data:
+        await sio.emit(event='receive_message', data={'results': 'Failure. Invalid sid.'}, to=sid)
         return
     
     user_id = user_data.get('user_id')
     user_username = user_data.get('username')
 
     if not user_id:
+        await sio.emit(event='receive_message', data={'results': 'Failure. Invalid user data.'}, to=sid)
         return
     
     chat_id = data.get('room_id')
@@ -186,5 +188,8 @@ async def get_chat_messages_handler(sid, data):
     if chat_id:
         async with socketio_get_db_session() as session:
             results = await read_chat_messages(chat_id, session)
-            await sio.emit('chat_messages_result', results, to=sid)
+            results_list = list(results)
+            if results_list:
+                results_dict = jsonable_encoder(results_list)
+            await sio.emit('chat_messages_result', results_dict, to=sid)
     await sio.emit('chat_messages_result', {'result': 'Failure. Invalid data.'}, to=sid)
