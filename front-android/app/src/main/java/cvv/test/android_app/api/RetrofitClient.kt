@@ -9,8 +9,8 @@ import okio.Buffer
 import retrofit2.Retrofit
 
 object RetrofitClient {
-    //Специальный адрес, чтобы эмулятор видел локальный сервер
-    private const val BASE_URL = "http://10.0.2.2:8000/"
+
+    private const val BASE_URL = "http://192.168.240.1:8000/"
 
     private val json = Json {
         ignoreUnknownKeys = true

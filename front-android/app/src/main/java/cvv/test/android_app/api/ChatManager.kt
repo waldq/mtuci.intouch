@@ -22,7 +22,7 @@ enum class MessageType {
 data class Message(
     val content: String?,
     @SerialName("msg_type") val msgType: MessageType = MessageType.TEXT,
-    @SerialName("reply_to_id") val replyToId: Long? = null,
+    @SerialName("reply_to_id") val replyToId: String? = null,
 )
 
 @Serializable
@@ -38,14 +38,14 @@ data class IncomingMessage(
 
 @Serializable
 data class SentMessage(
-    @SerialName("room_id") val roomId: Long,
+    @SerialName("room_id") val roomId: String,
     val message: Message,
 )
 
 //Singleton-Object для обработки событий в SocketIO
 object ChatManager {
     //Специальный адрес, чтобы эмулятор видел локальный сервер
-    private const val SOCKET_URL = "http://10.0.2.2:8000"
+    private const val SOCKET_URL = "http://192.168.240.1:8000"
     private var socket: Socket? = null
     private var currentRoomId: String? = null
 
@@ -62,6 +62,9 @@ object ChatManager {
 
         // Если сервер прислал null в поле, где у нас есть значение по умолчанию — подставить наше значение
         coerceInputValues = true
+
+        // Всегда отправлять поля со значениями по умолчанию
+        encodeDefaults = true
     }
 
 
@@ -175,7 +178,7 @@ object ChatManager {
     fun sendMessage(roomId: Long, text: String, type: MessageType = MessageType.TEXT) {
         try {
             val sentMessage = SentMessage(
-                roomId = roomId,
+                roomId = roomId.toString(),
                 message = Message(content = text, msgType = type)
             )
             //Преобразуем объект SentMessage в строку

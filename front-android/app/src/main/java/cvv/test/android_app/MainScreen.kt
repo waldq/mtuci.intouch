@@ -57,7 +57,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cvv.test.android_app.api.ChatGroupCreate
 import cvv.test.android_app.api.ChatManager
+import cvv.test.android_app.api.CreateGroupChatPayload
 import cvv.test.android_app.api.IncomingMessage
 import cvv.test.android_app.api.RetrofitClient
 import cvv.test.android_app.api.TimetableRequest
@@ -65,7 +67,10 @@ import cvv.test.android_app.ui.theme.AuthFieldBackground
 import cvv.test.android_app.ui.theme.AuthTextColor
 import kotlinx.coroutines.launch
 
-const val GROUP_ID = 315830186291499008L
+const val GROUP_ID = 323239634983194624L
+//Добавить поиск по юзерам,
+//При нахождении юзера вывести его профиль/информацию -> Добавить кнопку перейти в чат
+//-> при отправке нового соо
 
 @Composable
 fun MainScreen() {
