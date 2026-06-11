@@ -19,6 +19,21 @@ const Chats = () => {
   const [messageText, setMessageText] = useState('');
 
   const [contacts, setContacts] = useState([]);
+  
+  const [groups,setGroups] = useState([
+  { id: 101, name: 'Group1', lastMessage: 'message1', time: '10:00', online: true },
+  { id: 102, name: 'Group2', lastMessage: 'messadge1', time: 'Yesterday', online: true },
+  ]);
+
+  const [activeTab,setActiveTab]=useState('personal')
+
+  const [showEmojiPicker,setShowEmojiPicker]=useState(false);
+
+  const [showSearchWindow,setShowSearchWindow] = useState(false);
+
+  const [searchTag, setSearchTag] = useState('');
+
+  const [searchResults, setSearchResults] = useState([])
 
   useEffect(() => {
     const fetchChats = async () => {
@@ -48,18 +63,7 @@ const Chats = () => {
     fetchChats();
   }, []);
 
-  const [groups,setGroups] = useState([
-  { id: 101, name: 'Group1', lastMessage: 'message1', time: '10:00', online: true },
-  { id: 102, name: 'Group2', lastMessage: 'messadge1', time: 'Yesterday', online: true },
-  ]);
-
-  const [activeTab,setActiveTab]=useState('personal')
-
-  const [showEmojiPicker,setShowEmojiPicker]=useState(false);
-
-  const [showSearchWindow,setShowSearchWindow] = useState(false);
-
-  const [searchTag, setSearchTag] = useState('');
+  
   
   const onMessageReceived = useCallback((newMessage) => {
     console.log("Получено новое сообщение:", newMessage);
@@ -67,6 +71,54 @@ const Chats = () => {
   }, []); 
   
   const socket = useSocket(activeChatId, onMessageReceived);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleSearchResults = (data) => {
+      console.log("Получены результаты поиска:", data);
+      if (data && data.results === 'None.') {
+        setSearchResults([]);
+      } else if (Array.isArray(data)) {
+        setSearchResults(data);
+      }
+    };
+
+    socket.on('search_user_results', handleSearchResults);
+
+    return () => {
+      socket.off('search_user_results', handleSearchResults);
+    };
+  }, [socket]);
+
+
+ useEffect(() => {
+    if (!searchTag.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(() => {
+      if (socket && socket.connected) {
+        console.log(`Отправляем запрос на поиск: ${searchTag}`);
+        socket.emit('search_user', { username_or_tag: searchTag });
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(delayDebounceFn);
+    };
+  }, [searchTag, socket]);
+
+  const handleCreateOrOpenChat = (userId) => {
+    console.log(`Попытка открыть или создать чат с пользователем. ID собеседника: ${userId}`);
+    
+    // Закрываем окно поиска и очищаем строку, чтобы интерфейс реагировал на клик
+    setShowSearchWindow(false);
+    setSearchTag('');
+    
+    // Здесь в будущем будет логика открытия существующего чата или запрос к бэкенду
+  };
 
   const handleSendMessage = () => {
     if (messageText.trim() === '') return;
@@ -200,6 +252,26 @@ const Chats = () => {
               value={searchTag}
               onChange={(e) => setSearchTag(e.target.value)}
             />
+          </div>
+          <div className="search-results-list" style={{ marginTop: '15px' }}>
+            {searchResults.length > 0 ? (
+              searchResults.map((user) => (
+                <div 
+                  key={user.id} 
+                  className="search-result-card" 
+                  style={{ display: 'flex', alignItems: 'center', padding: '10px', cursor: 'pointer', gap: '10px' }}
+                  onClick={() => handleCreateOrOpenChat(user.id)}
+                >
+                  <img src="ope-avatar.jpg" className="avatar-md" alt={user.username} />
+                  <div className="user-info">
+                    <p className="user-name" style={{ margin: 0, fontWeight: 'bold' }}>{user.username}</p>
+                    <p className="user-tag" style={{ margin: 0, color: '#888', fontSize: '14px' }}>{user.tag || user.username}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              searchTag.trim() !== '' && <p className="no-results" style={{ color: '#888', textAlign: 'center' }}>Ничего не найдено</p>
+            )}
           </div>
         </div>
       </div>

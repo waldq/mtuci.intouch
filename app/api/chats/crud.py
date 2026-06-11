@@ -1,10 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select, delete, update, and_
-from sqlalchemy.orm import defer
+from sqlalchemy.orm import aliased
 
 from app.api.chats.schemas import ChatGroupCreate, ChatDirectCreate, ChatUpdate
 from app.db.models.chats import Chat, ChatMembersRoles, ChatMembers, ChatType
+from app.db.models.user import User
 
 #Функция создания группового чата.
 async def create_group_chat(chat_data: ChatGroupCreate,
@@ -186,9 +187,26 @@ async def kick_chatmember(chat_id: str, user_id: str, session: AsyncSession): #T
 
 #Функция, возвращающая id чатов пользователя.
 async def read_user_chats(user_id: str, session: AsyncSession):
-    statement = select(Chat)\
-        .join(ChatMembers, ChatMembers.chat_id == Chat.id)\
-        .where(ChatMembers.user_id == user_id)\
+    me = aliased(ChatMembers, name="me")
+    other = aliased(ChatMembers, name="other")
+
+    statement = select(
+        Chat.id.label('id'),
+        Chat.chat_type.label('chat_type'),
+        Chat.title.label('title'),
+        User.id.label('interlocutor_id'),
+        User.username.label('interlocutor_username')
+    )\
+        .join(me, and_(me.chat_id == Chat.id, me.user_id == user_id))\
+        .outerjoin(
+            other,
+            and_(
+                other.chat_id == Chat.id,
+                other.user_id != user_id,
+                Chat.chat_type == ChatType.DIRECT.value
+            )
+        )\
+        .outerjoin(User, User.id == other.user_id)\
         .distinct()
     results = await session.execute(statement)
-    return results.scalars().all()
+    return results.mappings().all()

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 
 from app.api.auth.dependencies import get_current_user
 from app.api.chats.crud import (create_group_chat, 
@@ -9,7 +10,7 @@ from app.api.chats.crud import (create_group_chat,
                                 add_chatmembers, 
                                 kick_chatmember,
                                 read_user_chats)
-from app.api.chats.schemas import ChatGroupCreate, ChatDirectCreate, ChatUpdate
+from app.api.chats.schemas import ChatGroupCreate, ChatDirectCreate, ChatUpdate, UserChatResponse
 from app.db.database import fastapi_get_db_session
 from app.api.users.crud import get_user_base_by_id
 
@@ -113,7 +114,7 @@ async def kick_chat_member(chat_id: str,
     except ValueError as e:
         raise e
     
-@router.get('/user_chats')
+@router.get('/user_chats', response_model=List[UserChatResponse])
 async def get_user_chats(
     user_data = Depends(get_current_user), 
     session: AsyncSession = Depends(fastapi_get_db_session)):
