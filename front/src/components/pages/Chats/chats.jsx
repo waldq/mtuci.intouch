@@ -11,7 +11,7 @@ import{
 import EmojiPicker from 'emoji-picker-react'
 
 const Chats = () => {
-  const [messages, setMessages] = useState([]);
+  const [chatMessages, setChatMessages] = useState({});
   const [activeChatId, setActiveChatId] = useState();
   const [messageText, setMessageText] = useState('');
   const [contacts, setContacts] = useState([]);
@@ -50,7 +50,10 @@ const Chats = () => {
         });
         if (response.ok) {
           const data = await response.json();
-          setMessages(data);
+          setChatMessages(prev => ({
+            ...prev,
+            [activeChatId]: data
+          }));
         }
       } catch (err) {
         console.error("Ошибка при получении сообщений:", err);
@@ -60,8 +63,8 @@ const Chats = () => {
   }, [activeChatId]);
 
   const [groups, setGroups] = useState([
-    { id: 101, name: 'Group1', chat_type: 'group', title: 'Group1', lastMessage: 'message1', time: '10:00' },
-    { id: 102, name: 'Group2', chat_type: 'group', title: 'Group2', lastMessage: 'message2', time: 'Yesterday' },
+    { id: 101, name: 'Group1', chat_type: 'group', title: 'Group1', lastMessage: '', time: '' },
+    { id: 102, name: 'Group2', chat_type: 'group', title: 'Group2', lastMessage: '', time: '' },
   ]);
 
   const [activeTab, setActiveTab] = useState('personal');
@@ -72,12 +75,32 @@ const Chats = () => {
   const onMessageReceived = useCallback((newMessage) => {
     console.log("Получено от сервера:", newMessage);
     if (!newMessage || !newMessage.content) return;
-    setMessages((prev) => {
-      const exists = prev.some(msg => msg.id === newMessage.id);
-      if (exists) return prev;
-      return [...prev, newMessage];
-    });
-  }, []); 
+    
+    const chatId = activeChatId;
+    
+    setChatMessages(prev => ({
+      ...prev,
+      [chatId]: [...(prev[chatId] || []), newMessage]
+    }));
+    
+    const newLastMessage = newMessage.content.length > 30 
+      ? newMessage.content.slice(0, 30) + '...' 
+      : newMessage.content;
+    
+    const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    setContacts(prev => prev.map(contact => 
+      contact.id === chatId 
+        ? { ...contact, lastMessage: newLastMessage, time: currentTime }
+        : contact
+    ));
+    
+    setGroups(prev => prev.map(group => 
+      group.id === chatId 
+        ? { ...group, lastMessage: newLastMessage, time: currentTime }
+        : group
+    ));
+  }, [activeChatId]); 
   
   const socket = useSocket(activeChatId, onMessageReceived);
 
@@ -91,13 +114,27 @@ const Chats = () => {
     const tempId = Date.now();
     const username = localStorage.getItem('username') || 'User';
     
-    setMessages(prev => [...prev, {
-      id: tempId,
-      content: messageText,
-      sender_id: username,
-      sender_name: username,
-      created_at: new Date().toISOString()
-    }]);
+    const newLastMessage = messageText.length > 30 
+      ? messageText.slice(0, 30) + '...' 
+      : messageText;
+    const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    setGroups(prev => prev.map(group => 
+      group.id === activeChatId 
+        ? { ...group, lastMessage: newLastMessage, time: currentTime }
+        : group
+    ));
+    
+    setChatMessages(prev => ({
+      ...prev,
+      [activeChatId]: [...(prev[activeChatId] || []), {
+        id: tempId,
+        content: messageText,
+        sender_id: username,
+        sender_name: username,
+        created_at: new Date().toISOString()
+      }]
+    }));
 
     socket.emit("send_message", {
       room_id: activeChatId,
@@ -116,7 +153,7 @@ const Chats = () => {
   const messagesEndRef = useRef(null);
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [chatMessages[activeChatId]]);
 
   const getInitial = (name) => {
     if (!name) return '?';
@@ -154,6 +191,8 @@ const Chats = () => {
     return { name: 'Выберите чат', type: null, id: null };
   }, [activeChatId, contacts, groups]);
 
+  const currentMessages = chatMessages[activeChatId] || [];
+
   return (
     <>
       <Helmet><title>Чаты</title></Helmet>
@@ -173,12 +212,16 @@ const Chats = () => {
           <div className="chats-list">
             {(activeTab === 'personal' ? contacts : groups).map((chat) => {
               let chatName = chat.title || chat.name || `chat${String(chat.id).slice(-4)}`;
+              const displayLastMessage = chat.lastMessage && chat.lastMessage !== '' ? chat.lastMessage : "Нет сообщений";
               return(
                 <div key={chat.id} className={`chat-card ${activeChatId === chat.id ? 'active' : ''}`} onClick={() => setActiveChatId(chat.id)}>
                   <div className="avatar-md avatar-initial" style={{ backgroundColor: getAvatarColor(chatName) }}>{getInitial(chatName)}</div>
                   <div className="chat-info">
-                    <div className="chat-info-row"><span className="user-name">{chatName}</span><span className="timestamp">{chat.time}</span></div>
-                    <p className="message-preview">{chat.lastMessage || "Нет сообщений"}</p>
+                    <div className="chat-info-row">
+                      <span className="user-name">{chatName}</span>
+                      <span className="timestamp">{chat.time || ''}</span>
+                    </div>
+                    <p className="message-preview">{displayLastMessage}</p>
                   </div>
                 </div>
               );
@@ -207,7 +250,7 @@ const Chats = () => {
           </header>
 
           <div className="messages-area">
-            {messages.map((msg) => {
+            {currentMessages.map((msg) => {
               const isOwnMessage = msg.sender_id === currentUsername || msg.sender_name === currentUsername;
               const displayName = isOwnMessage ? currentUsername : (msg.sender_name || 'Пользователь');
               return (
